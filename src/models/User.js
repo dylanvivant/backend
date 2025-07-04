@@ -94,6 +94,37 @@ class User extends BaseModel {
     if (error) throw error;
     return data;
   }
+
+  // Obtenir les membres actifs de l'équipe (pour invitation automatique)
+  async getActiveTeamMembers() {
+    const { data, error } = await this.supabase
+      .from(this.tableName)
+      .select(
+        `
+        id,
+        pseudo,
+        email,
+        roles(name),
+        player_types(name)
+      `
+      )
+      .eq('is_verified', true)
+      .not('roles', 'is', null); // Exclure les utilisateurs sans rôle
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  // Obtenir les emails des utilisateurs par leurs IDs
+  async getEmailsByIds(userIds) {
+    const { data, error } = await this.supabase
+      .from(this.tableName)
+      .select('id, email, pseudo')
+      .in('id', userIds);
+
+    if (error) throw error;
+    return data || [];
+  }
 }
 
 module.exports = User;

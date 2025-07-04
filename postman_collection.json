@@ -1,0 +1,739 @@
+{
+  "info": {
+    "name": "S4V Backend API",
+    "description": "Collection complète pour tester l'API backend de gestion d'équipe esport",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "authToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "eventId",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.token) {",
+                  "        pm.collectionVariables.set('authToken', responseJson.token);",
+                  "    }",
+                  "    if (responseJson.user && responseJson.user.id) {",
+                  "        pm.collectionVariables.set('userId', responseJson.user.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"TestPassword123!\",\n  \"pseudo\": \"testuser\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.token) {",
+                  "        pm.collectionVariables.set('authToken', responseJson.token);",
+                  "    }",
+                  "    if (responseJson.user && responseJson.user.id) {",
+                  "        pm.collectionVariables.set('userId', responseJson.user.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"TestPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Verify Token (Debug)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-token",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify-token"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "Create Event (Type 1 - Auto Invite)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.data && responseJson.data.event && responseJson.data.event.id) {",
+                  "        pm.collectionVariables.set('eventId', responseJson.data.event.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Entraînement Aim\",\n  \"description\": \"Session d'entraînement - tous les joueurs actifs sont invités automatiquement\",\n  \"start_time\": \"2025-07-10T18:00:00Z\",\n  \"end_time\": \"2025-07-10T20:00:00Z\",\n  \"location\": \"Salle d'entraînement\",\n  \"event_type_id\": 1,\n  \"max_participants\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            }
+          }
+        },
+        {
+          "name": "Create Event (Type 1 - Specific Players)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Entraînement Sélectif\",\n  \"description\": \"Session d'entraînement pour joueurs spécifiques\",\n  \"start_time\": \"2025-07-12T18:00:00Z\",\n  \"end_time\": \"2025-07-12T20:00:00Z\",\n  \"location\": \"Salle d'entraînement\",\n  \"event_type_id\": 1,\n  \"max_participants\": 5,\n  \"participant_ids\": [\n    \"REMPLACEZ-PAR-UUID-VALIDE-1\",\n    \"REMPLACEZ-PAR-UUID-VALIDE-2\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            }
+          }
+        },
+        {
+          "name": "Create Event (Other Types - Manual Selection)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Match officiel\",\n  \"description\": \"Match de championnat - sélection manuelle obligatoire\",\n  \"start_time\": \"2025-07-15T19:00:00Z\",\n  \"end_time\": \"2025-07-15T21:00:00Z\",\n  \"location\": \"Arena principale\",\n  \"event_type_id\": 2,\n  \"max_participants\": 5,\n  \"participant_ids\": [\n    \"REMPLACEZ-PAR-UUID-VALIDE-1\",\n    \"REMPLACEZ-PAR-UUID-VALIDE-2\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            }
+          }
+        },
+        {
+          "name": "Get All Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            }
+          }
+        },
+        {
+          "name": "Get Event by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "{{eventId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Event",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Match d'entraînement modifié\",\n  \"description\": \"Session d'entraînement en équipe - mise à jour\",\n  \"start_time\": \"2025-07-10T18:30:00Z\",\n  \"end_time\": \"2025-07-10T20:30:00Z\",\n  \"location\": \"Nouvelle salle d'entraînement\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "{{eventId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Event",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "{{eventId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Recurring Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Entraînement hebdomadaire\",\n  \"description\": \"Entraînement récurrent chaque semaine\",\n  \"start_time\": \"2025-07-10T18:00:00Z\",\n  \"end_time\": \"2025-07-10T20:00:00Z\",\n  \"location\": \"Salle d'entraînement\",\n  \"event_type_id\": 1,\n  \"max_participants\": 10,\n  \"recurrence\": {\n    \"frequency\": \"weekly\",\n    \"interval\": 1,\n    \"count\": 4\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events/recurring",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "recurring"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications"]
+            }
+          }
+        },
+        {
+          "name": "Send Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_id\": \"{{userId}}\",\n  \"type\": \"info\",\n  \"title\": \"Notification de test\",\n  \"message\": \"Ceci est une notification de test\",\n  \"channels\": [\"in_app\", \"email\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "send"]
+            }
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/NOTIFICATION_ID/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "NOTIFICATION_ID", "read"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reporting",
+      "item": [
+        {
+          "name": "Get Team Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reporting/team-stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reporting", "team-stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Event Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reporting/event-analytics?start_date=2025-01-01&end_date=2025-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reporting", "event-analytics"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Generate Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"team_performance\",\n  \"period\": \"monthly\",\n  \"start_date\": \"2025-01-01\",\n  \"end_date\": \"2025-01-31\",\n  \"format\": \"json\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reporting/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reporting", "generate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Monitoring",
+      "item": [
+        {
+          "name": "System Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/monitoring/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "monitoring", "status"]
+            }
+          }
+        },
+        {
+          "name": "Performance Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/monitoring/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "monitoring", "metrics"]
+            }
+          }
+        },
+        {
+          "name": "Get Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/monitoring/logs?level=error&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "monitoring", "logs"],
+              "query": [
+                {
+                  "key": "level",
+                  "value": "error"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Get All Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roles"]
+            }
+          }
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"coach\",\n  \"description\": \"Entraîneur de l'équipe\",\n  \"permissions\": [\"events:read\", \"events:write\", \"users:read\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roles"]
+            }
+          }
+        },
+        {
+          "name": "Assign Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"role_id\": \"ROLE_ID\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/roles/assign",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "roles", "assign"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations",
+      "item": [
+        {
+          "name": "Get Integrations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations"]
+            }
+          }
+        },
+        {
+          "name": "Create Integration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Discord Bot\",\n  \"type\": \"discord\",\n  \"config\": {\n    \"webhook_url\": \"https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN\",\n    \"channel_id\": \"YOUR_CHANNEL_ID\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations"]
+            }
+          }
+        },
+        {
+          "name": "Test Integration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Test d'intégration depuis Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/INTEGRATION_ID/test",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "INTEGRATION_ID", "test"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script pré-requête global",
+          "console.log('Executing request to:', pm.request.url.toString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Test global",
+          "pm.test('Status code is not 500', function () {",
+          "    pm.expect(pm.response.code).to.not.equal(500);",
+          "});",
+          "",
+          "pm.test('Response time is less than 5000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});"
+        ]
+      }
+    }
+  ]
+}

@@ -121,7 +121,26 @@ const eventSchemas = {
     duration_minutes: Joi.number().integer().min(15).max(480),
     maps_played: Joi.array().items(Joi.string().max(50)),
     games_count: Joi.number().integer().min(1).max(20),
+    opponent_team_id: Joi.number().integer().min(1),
+  }),
+
+  updateEvent: Joi.object({
+    title: Joi.string().min(3).max(200),
+    description: Joi.string().max(1000),
+    start_time: baseSchemas.date,
+    end_time: baseSchemas.date,
+    duration_minutes: Joi.number().integer().min(15).max(480),
+    maps_played: Joi.array().items(Joi.string().max(50)),
+    games_count: Joi.number().integer().min(1).max(20),
+    opponent_team_id: Joi.number().integer().min(1),
     status: Joi.string().valid('scheduled', 'completed', 'cancelled'),
+  }),
+
+  inviteUsers: Joi.object({
+    user_ids: Joi.array().items(baseSchemas.uuid).min(1).required().messages({
+      'array.min': 'Au moins un utilisateur doit être spécifié',
+      'string.guid': 'Les IDs utilisateur doivent être des UUID valides',
+    }),
   }),
 
   respondToInvitation: Joi.object({
@@ -170,7 +189,7 @@ const practiceRequestSchemas = {
 
   handleRequest: Joi.object({
     status: Joi.string().valid('accepted', 'declined').required(),
-    response: Joi.string().max(500),
+    response: Joi.string().max(1000), // Le message de réponse
   }),
 };
 

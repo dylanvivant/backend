@@ -368,6 +368,26 @@ class AuthController {
       });
     }
   }
+
+  // Vérifier le token actuel (pour debug)
+  async verifyCurrentToken(req, res) {
+    try {
+      res.json({
+        success: true,
+        message: 'Token valide',
+        data: {
+          user: req.user,
+          tokenExpiration: new Date(req.user.exp * 1000).toISOString(),
+          currentTime: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      res.status(401).json({
+        success: false,
+        message: 'Token invalide',
+      });
+    }
+  }
 }
 
 module.exports = new AuthController();

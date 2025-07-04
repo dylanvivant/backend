@@ -60,23 +60,65 @@ class EventsController {
   // Créer un événement
   async createEvent(req, res) {
     try {
-      const eventData = {
-        ...req.body,
+      const { participant_ids, ...eventData } = req.body;
+
+      // Données de base de l'événement
+      const completeEventData = {
+        ...eventData,
         created_by: req.user.id,
       };
 
-      const event = await Event.create(eventData);
+      let participantIdsToInvite = [];
+
+      // Logique d'invitation selon le type d'événement
+      if (eventData.event_type_id === 1) {
+        // Type 1: Invitation automatique de tous les joueurs actifs
+        if (participant_ids && participant_ids.length > 0) {
+          // Si des participants sont spécifiés, les utiliser
+          participantIdsToInvite = participant_ids;
+        } else {
+          // Sinon, inviter automatiquement tous les joueurs actifs
+          const activeUsers = await User.getActiveTeamMembers();
+          participantIdsToInvite = activeUsers.map((user) => user.id);
+        }
+      } else {
+        // Autres types: Sélection manuelle uniquement
+        if (participant_ids && participant_ids.length > 0) {
+          participantIdsToInvite = participant_ids;
+        }
+      }
+
+      // Créer l'événement avec les participants
+      const event = await Event.createEventWithParticipants(
+        completeEventData,
+        participantIdsToInvite
+      );
+
+      // Envoyer les notifications d'invitation si des participants
+      if (participantIdsToInvite.length > 0) {
+        try {
+          await this.sendEventInvitations(event, participantIdsToInvite);
+        } catch (notificationError) {
+          console.warn('Erreur envoi notifications:', notificationError);
+          // Ne pas faire échouer la création si les notifications échouent
+        }
+      }
 
       res.status(201).json({
         success: true,
         message: 'Événement créé avec succès',
-        data: { event },
+        data: {
+          event,
+          participants_invited: participantIdsToInvite.length,
+        },
       });
     } catch (error) {
       console.error('Erreur création événement:', error);
       res.status(500).json({
         success: false,
         message: "Erreur lors de la création de l'événement",
+        error:
+          process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
   }
@@ -194,7 +236,26 @@ class EventsController {
       // Envoyer les invitations par email
       try {
         const userEmails = await User.getEmailsByIds(user_ids);
-        await emailService.sendEventInvitations(userEmails, event);
+        console.log('Utilisateurs trouvés pour invitations:', userEmails);
+
+        for (const user of userEmails) {
+          console.log(`Envoi invitation à: ${user.email} (${user.pseudo})`);
+
+          if (!user.email) {
+            console.warn(
+              `Email manquant pour l'utilisateur ${user.pseudo} (${user.id})`
+            );
+            continue;
+          }
+
+          await emailService.sendEventInvitation(
+            user.email,
+            user.pseudo,
+            event.title,
+            event.start_time,
+            'entrainement' // type d'événement
+          );
+        }
       } catch (emailError) {
         console.error('Erreur envoi invitations:', emailError);
       }
@@ -315,6 +376,50 @@ class EventsController {
         success: false,
         message: "Erreur lors de la récupération des types d'événements",
       });
+    }
+  }
+
+  // Méthode privée pour envoyer les invitations
+  async sendEventInvitations(event, participantIds) {
+    try {
+      // Récupérer les informations des participants via le modèle User
+      const userEmails = await User.getEmailsByIds(participantIds);
+      console.log(
+        'Utilisateurs trouvés pour invitations (méthode privée):',
+        userEmails
+      );
+
+      // Envoyer les notifications d'invitation
+      for (const participant of userEmails) {
+        try {
+          console.log(
+            `Envoi invitation à: ${participant.email} (${participant.pseudo})`
+          );
+
+          if (!participant.email) {
+            console.warn(
+              `Email manquant pour l'utilisateur ${participant.pseudo} (${participant.id})`
+            );
+            continue;
+          }
+
+          await emailService.sendEventInvitation(
+            participant.email,
+            participant.pseudo,
+            event.title,
+            event.start_time,
+            'entrainement' // type d'événement
+          );
+        } catch (emailError) {
+          console.warn(
+            `Erreur envoi email à ${participant.email}:`,
+            emailError
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Erreur envoi invitations:', error);
+      throw error;
     }
   }
 }
