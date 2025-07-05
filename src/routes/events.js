@@ -4,7 +4,6 @@
 // ========================================
 const express = require('express');
 const router = express.Router();
-const Joi = require('joi');
 
 // Middlewares
 const { authenticate } = require('../middleware/auth');
@@ -67,7 +66,12 @@ router.delete('/:id', validateUuidParam('id'), eventsController.deleteEvent);
 router.post(
   '/:id/invite',
   validateUuidParam('id'),
-  validate(eventSchemas.inviteUsers),
+  validate({
+    user_ids: require('joi')
+      .array()
+      .items(require('joi').string().uuid())
+      .required(),
+  }),
   eventsController.inviteUsers
 );
 

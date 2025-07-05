@@ -45,7 +45,7 @@ router.post(
 router.use(authenticate); // Toutes les routes suivantes nécessitent une auth
 
 router.get('/profile', authController.getProfile);
-router.get('/verify-token', authController.verifyCurrentToken); // Nouvelle route pour debug
+
 router.put(
   '/profile',
   validate(userSchemas.updateUser),

@@ -125,8 +125,8 @@ class AuthController {
             player_type: user.player_types?.name,
           },
           tokens: {
-            accessToken,
-            refreshToken,
+            access_token: accessToken,
+            refresh_token: refreshToken,
           },
         },
       });
@@ -355,8 +355,8 @@ class AuthController {
         success: true,
         data: {
           tokens: {
-            accessToken,
-            refreshToken: newRefreshToken,
+            access_token: accessToken,
+            refresh_token: newRefreshToken,
           },
         },
       });
@@ -365,26 +365,6 @@ class AuthController {
       res.status(401).json({
         success: false,
         message: 'Refresh token invalide',
-      });
-    }
-  }
-
-  // Vérifier le token actuel (pour debug)
-  async verifyCurrentToken(req, res) {
-    try {
-      res.json({
-        success: true,
-        message: 'Token valide',
-        data: {
-          user: req.user,
-          tokenExpiration: new Date(req.user.exp * 1000).toISOString(),
-          currentTime: new Date().toISOString(),
-        },
-      });
-    } catch (error) {
-      res.status(401).json({
-        success: false,
-        message: 'Token invalide',
       });
     }
   }

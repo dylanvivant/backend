@@ -236,26 +236,7 @@ class EventsController {
       // Envoyer les invitations par email
       try {
         const userEmails = await User.getEmailsByIds(user_ids);
-        console.log('Utilisateurs trouvés pour invitations:', userEmails);
-
-        for (const user of userEmails) {
-          console.log(`Envoi invitation à: ${user.email} (${user.pseudo})`);
-
-          if (!user.email) {
-            console.warn(
-              `Email manquant pour l'utilisateur ${user.pseudo} (${user.id})`
-            );
-            continue;
-          }
-
-          await emailService.sendEventInvitation(
-            user.email,
-            user.pseudo,
-            event.title,
-            event.start_time,
-            'entrainement' // type d'événement
-          );
-        }
+        await emailService.sendEventInvitations(userEmails, event);
       } catch (emailError) {
         console.error('Erreur envoi invitations:', emailError);
       }
@@ -384,32 +365,17 @@ class EventsController {
     try {
       // Récupérer les informations des participants via le modèle User
       const userEmails = await User.getEmailsByIds(participantIds);
-      console.log(
-        'Utilisateurs trouvés pour invitations (méthode privée):',
-        userEmails
-      );
 
       // Envoyer les notifications d'invitation
       for (const participant of userEmails) {
         try {
-          console.log(
-            `Envoi invitation à: ${participant.email} (${participant.pseudo})`
-          );
-
-          if (!participant.email) {
-            console.warn(
-              `Email manquant pour l'utilisateur ${participant.pseudo} (${participant.id})`
-            );
-            continue;
-          }
-
-          await emailService.sendEventInvitation(
-            participant.email,
-            participant.pseudo,
-            event.title,
-            event.start_time,
-            'entrainement' // type d'événement
-          );
+          await emailService.sendEventInvitation({
+            to: participant.email,
+            userName: participant.pseudo,
+            eventTitle: event.title,
+            eventDate: event.start_time,
+            eventDescription: event.description,
+          });
         } catch (emailError) {
           console.warn(
             `Erreur envoi email à ${participant.email}:`,

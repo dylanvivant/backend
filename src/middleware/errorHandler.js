@@ -1,5 +1,15 @@
+const { AppError } = require('../utils/helpers');
+
 const errorHandler = (err, req, res, next) => {
   console.error('Erreur:', err);
+
+  // Erreur personnalisée AppError
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+    });
+  }
 
   // Erreur de validation Joi
   if (err.isJoi) {
@@ -24,6 +34,14 @@ const errorHandler = (err, req, res, next) => {
     return res.status(401).json({
       success: false,
       message: 'Token invalide',
+    });
+  }
+
+  // Erreur JWT expirée
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      success: false,
+      message: 'Token expiré',
     });
   }
 

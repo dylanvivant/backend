@@ -10,23 +10,30 @@ const AdvancedRbac = require('../middleware/advancedRbac');
 router.use(authenticate);
 
 /**
- * @route   POST /api/notifications
- * @desc    Créer une notification
+ * @route   POST /api/notifications/invitations
+ * @desc    Créer des invitations d'événement (remplace la création de notification)
  * @access  Private (Admin, Manager)
  */
 router.post(
-  '/',
+  '/invitations',
   AdvancedRbac.hasAnyRole(['admin', 'manager']),
-  validate(schemas.notification.create),
-  notificationController.createNotification
+  validate(schemas.notification.createInvitation),
+  notificationController.createEventInvitation
 );
 
 /**
  * @route   GET /api/notifications
- * @desc    Récupérer les notifications de l'utilisateur
+ * @desc    Récupérer les notifications de l'utilisateur (basées sur les événements)
  * @access  Private
  */
 router.get('/', notificationController.getUserNotifications);
+
+/**
+ * @route   GET /api/notifications/count
+ * @desc    Obtenir le nombre de notifications non lues
+ * @access  Private
+ */
+router.get('/count', notificationController.getUnreadNotificationsCount);
 
 /**
  * @route   PATCH /api/notifications/:id/read
@@ -50,15 +57,14 @@ router.patch('/read-all', notificationController.markAllAsRead);
 router.delete('/:id', notificationController.deleteNotification);
 
 /**
- * @route   POST /api/notifications/bulk
- * @desc    Envoyer une notification de masse
- * @access  Private (Admin, Manager)
+ * @route   POST /api/notifications/respond
+ * @desc    Répondre à une invitation d'événement
+ * @access  Private
  */
 router.post(
-  '/bulk',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
-  validate(schemas.notification.bulk),
-  notificationController.sendBulkNotification
+  '/respond',
+  validate(schemas.notification.respondToInvitation),
+  notificationController.respondToInvitation
 );
 
 /**
@@ -77,29 +83,6 @@ router.put(
   '/preferences',
   validate(schemas.notification.preferences),
   notificationController.updateUserPreferences
-);
-
-/**
- * @route   POST /api/notifications/schedule
- * @desc    Programmer une notification
- * @access  Private (Admin, Manager)
- */
-router.post(
-  '/schedule',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
-  validate(schemas.notification.schedule),
-  notificationController.scheduleNotification
-);
-
-/**
- * @route   POST /api/notifications/process-scheduled
- * @desc    Traiter les notifications programmées
- * @access  Private (Admin)
- */
-router.post(
-  '/process-scheduled',
-  AdvancedRbac.hasRole('admin'),
-  notificationController.processScheduledNotifications
 );
 
 /**
