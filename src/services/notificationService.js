@@ -224,31 +224,88 @@ L'équipe {teamName}`,
     }
   }
 
-  // Notifications automatiques pour les événements
+  // Envoyer des notifications pour un événement
   async sendEventNotifications(eventId, type, additionalData = {}) {
     try {
-      const event = await Event.findById(eventId);
+      const event = await Event.findById(eventId).populate('event_types');
       if (!event) {
         throw new Error('Événement non trouvé');
       }
 
-      const participants = await EventParticipant.find({
-        event: eventId,
-      }).populate('user');
-      const recipients = participants.map((p) => p.user);
+      const participants = await EventParticipant.findByEventId(eventId);
+      const recipients = participants.map((p) => ({
+        id: p.user_id,
+        name: p.users?.pseudo || 'Utilisateur',
+        email: p.users?.email,
+        discordId: p.users?.discord_id,
+        slackId: p.users?.slack_id,
+      }));
 
-      const data = {
+      const eventData = {
         eventTitle: event.title,
-        eventDescription: event.description,
-        eventDate: event.date.toLocaleDateString('fr-FR'),
-        eventTime: event.date.toLocaleTimeString('fr-FR'),
-        teamName: 'Team S4V',
+        eventDate: new Date(event.start_time).toLocaleDateString('fr-FR'),
+        eventTime: new Date(event.start_time).toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        eventDescription: event.description || 'Aucune description',
+        teamName: 'S4V Team',
         ...additionalData,
       };
 
-      return await this.sendNotification(type, recipients, data);
+      return await this.sendNotification(type, recipients, eventData);
     } catch (error) {
-      console.error('Erreur notification événement:', error);
+      console.error('Erreur envoi notifications événement:', error);
+      throw error;
+    }
+  }
+
+  // Envoyer des invitations pour un événement
+  async sendEventInvitations(eventId, participantIds = []) {
+    try {
+      const event = await Event.findById(eventId).populate('event_types');
+      if (!event) {
+        throw new Error('Événement non trouvé');
+      }
+
+      // Si des participantIds sont fournis, les utiliser, sinon récupérer tous les participants
+      let participants;
+      if (participantIds.length > 0) {
+        participants = await EventParticipant.findByEventIdAndUserIds(
+          eventId,
+          participantIds
+        );
+      } else {
+        participants = await EventParticipant.findByEventId(eventId);
+      }
+
+      const recipients = participants.map((p) => ({
+        id: p.user_id,
+        name: p.users?.pseudo || 'Utilisateur',
+        email: p.users?.email,
+        discordId: p.users?.discord_id,
+        slackId: p.users?.slack_id,
+      }));
+
+      const eventData = {
+        eventTitle: event.title,
+        eventDate: new Date(event.start_time).toLocaleDateString('fr-FR'),
+        eventTime: new Date(event.start_time).toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        eventDescription: event.description || 'Aucune description',
+        teamName: 'S4V Team',
+        eventType: event.event_types?.name || 'Événement',
+      };
+
+      return await this.sendNotification(
+        'event_created',
+        recipients,
+        eventData
+      );
+    } catch (error) {
+      console.error('Erreur envoi invitations événement:', error);
       throw error;
     }
   }

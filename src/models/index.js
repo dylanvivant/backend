@@ -4,6 +4,7 @@ const EventParticipant = require('./EventParticipant');
 const SessionNote = require('./SessionNote');
 const PracticeRequest = require('./PracticeRequest');
 const CaptainNomination = require('./CaptainNomination');
+const Map = require('./Map');
 
 module.exports = {
   User: new User(),
@@ -12,4 +13,5 @@ module.exports = {
   SessionNote: new SessionNote(),
   PracticeRequest: new PracticeRequest(),
   CaptainNomination: new CaptainNomination(),
+  Map: new Map(),
 };

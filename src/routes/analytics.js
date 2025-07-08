@@ -16,7 +16,7 @@ router.use(authenticate);
  */
 router.get(
   '/general',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getGeneralStats
 );
 
@@ -27,7 +27,7 @@ router.get(
  */
 router.get(
   '/users',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getUserStats
 );
 
@@ -38,7 +38,7 @@ router.get(
  */
 router.get(
   '/events',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getEventStats
 );
 
@@ -49,7 +49,7 @@ router.get(
  */
 router.get(
   '/performance',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getPerformanceStats
 );
 
@@ -60,7 +60,7 @@ router.get(
  */
 router.get(
   '/engagement',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getEngagementMetrics
 );
 
@@ -71,7 +71,7 @@ router.get(
  */
 router.get(
   '/teams',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getTeamStats
 );
 
@@ -93,7 +93,7 @@ router.post(
  */
 router.post(
   '/report',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   validate(schemas.analytics.report),
   analyticsController.generateCustomReport
 );
@@ -105,7 +105,7 @@ router.post(
  */
 router.get(
   '/kpis',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getMainKPIs
 );
 
@@ -116,7 +116,7 @@ router.get(
  */
 router.get(
   '/trends',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getTrendData
 );
 
@@ -127,7 +127,7 @@ router.get(
  */
 router.get(
   '/realtime',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getRealTimeStats
 );
 
@@ -138,7 +138,7 @@ router.get(
  */
 router.get(
   '/retention',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getRetentionMetrics
 );
 
@@ -149,7 +149,7 @@ router.get(
  */
 router.get(
   '/funnel',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   analyticsController.getFunnelData
 );
 
@@ -160,7 +160,7 @@ router.get(
  */
 router.post(
   '/export',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   validate(schemas.analytics.export),
   analyticsController.exportData
 );
@@ -172,7 +172,7 @@ router.post(
  */
 router.get(
   '/alerts',
-  AdvancedRbac.hasRole('admin'),
+  AdvancedRbac.hasRole('Capitaine'),
   analyticsController.getAnalyticsAlerts
 );
 
@@ -183,7 +183,7 @@ router.get(
  */
 router.post(
   '/alerts',
-  AdvancedRbac.hasRole('admin'),
+  AdvancedRbac.hasRole('Capitaine'),
   validate(schemas.analytics.alert),
   analyticsController.configureAlert
 );
@@ -195,7 +195,7 @@ router.post(
  */
 router.delete(
   '/cache',
-  AdvancedRbac.hasRole('admin'),
+  AdvancedRbac.hasRole('Capitaine'),
   analyticsController.clearAnalyticsCache
 );
 

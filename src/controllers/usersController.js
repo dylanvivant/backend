@@ -108,6 +108,7 @@ class UsersController {
         player_type_id,
         password: temporaryPassword,
         is_verified: true, // Compte créé par capitaine = déjà vérifié
+        must_change_password: true, // Forcer le changement à la première connexion
       };
 
       const newUser = await User.createUser(userData);
@@ -320,6 +321,31 @@ class UsersController {
       res.status(500).json({
         success: false,
         message: 'Erreur lors de la réinitialisation du mot de passe',
+      });
+    }
+  }
+
+  // Changer le mot de passe d'un membre (reset ou update)
+  async updateMemberPassword(req, res) {
+    try {
+      const { id } = req.params;
+      const { newPassword } = req.body;
+      if (!newPassword) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Nouveau mot de passe requis' });
+      }
+      const updated = await User.updatePassword(id, newPassword);
+      res.json({
+        success: true,
+        message: 'Mot de passe mis à jour',
+        data: updated,
+      });
+    } catch (error) {
+      console.error('Erreur changement mot de passe:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors du changement de mot de passe',
       });
     }
   }

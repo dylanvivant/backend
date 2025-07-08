@@ -14,6 +14,9 @@ const eventRoutes = require('./src/routes/events');
 const sessionNotesRoutes = require('./src/routes/sessionNotes');
 const practiceRoutes = require('./src/routes/practices');
 const nominationRoutes = require('./src/routes/nominations');
+const mapsRoutes = require('./src/routes/maps');
+const opponentTeamsRoutes = require('./src/routes/opponentTeams');
+
 // Nouvelles routes avancées
 const recurrenceRoutes = require('./src/routes/recurrence');
 const notificationRoutes = require('./src/routes/notifications');
@@ -91,6 +94,8 @@ app.use('/api/events', eventRoutes);
 app.use('/api/session-notes', sessionNotesRoutes);
 app.use('/api/practices', practiceRoutes);
 app.use('/api/nominations', nominationRoutes);
+app.use('/api/maps', mapsRoutes);
+app.use('/api/opponent-teams', opponentTeamsRoutes);
 
 // Nouvelles routes avancées
 app.use('/api/recurrence', recurrenceRoutes);

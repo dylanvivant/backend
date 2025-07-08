@@ -17,7 +17,7 @@ router.use(authenticate);
  */
 router.get(
   '/status',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   async (req, res) => {
     try {
       const status = integrationService.getIntegrationsStatus();
@@ -39,7 +39,7 @@ router.get(
  */
 router.post(
   '/discord/message',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   validate(schemas.integration.discordMessage),
   async (req, res) => {
     try {
@@ -66,7 +66,7 @@ router.post(
  */
 router.post(
   '/slack/message',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   validate(schemas.integration.slackMessage),
   async (req, res) => {
     try {
@@ -93,7 +93,7 @@ router.post(
  */
 router.get(
   '/twitch/user/:username',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   async (req, res) => {
     try {
       const { username } = req.params;
@@ -118,7 +118,7 @@ router.get(
  */
 router.get(
   '/twitch/stream/:username',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   async (req, res) => {
     try {
       const { username } = req.params;
@@ -142,7 +142,7 @@ router.get(
  */
 router.get(
   '/steam/player/:steamId',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   async (req, res) => {
     try {
       const { steamId } = req.params;
@@ -167,7 +167,7 @@ router.get(
  */
 router.get(
   '/riot/player/:summonerName',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   async (req, res) => {
     try {
       const { summonerName } = req.params;
@@ -196,7 +196,7 @@ router.get(
  */
 router.post(
   '/notify-event',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   validate(schemas.integration.notifyEvent),
   async (req, res) => {
     try {

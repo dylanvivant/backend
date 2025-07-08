@@ -25,7 +25,8 @@ const getUserNotifications = async (req, res) => {
     // 1. Récupérer les invitations pendantes (notifications non lues)
     const { data: invitations, error: invitationsError } = await supabase
       .from('event_invitations')
-      .select(`
+      .select(
+        `
         *,
         events(
           id,
@@ -37,7 +38,8 @@ const getUserNotifications = async (req, res) => {
           users!events_created_by_fkey(pseudo)
         ),
         invited_by_user:users!event_invitations_invited_by_fkey(pseudo)
-      `)
+      `
+      )
       .eq('user_id', userId)
       .order('sent_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -46,7 +48,7 @@ const getUserNotifications = async (req, res) => {
       console.error('Erreur récupération invitations:', invitationsError);
     } else if (invitations && invitations.length > 0) {
       // Transformer les invitations en notifications
-      invitations.forEach(invitation => {
+      invitations.forEach((invitation) => {
         const event = invitation.events;
         if (!event) return;
 
@@ -58,7 +60,9 @@ const getUserNotifications = async (req, res) => {
         switch (invitation.status) {
           case 'pending':
             title = `Invitation à ${event.title}`;
-            content = `Vous avez été invité(e) à participer à l'événement "${event.title}" le ${new Date(event.start_time).toLocaleDateString('fr-FR')}`;
+            content = `Vous avez été invité(e) à participer à l'événement "${
+              event.title
+            }" le ${new Date(event.start_time).toLocaleDateString('fr-FR')}`;
             isRead = false;
             break;
           case 'accepted':
@@ -94,8 +98,8 @@ const getUserNotifications = async (req, res) => {
             event_start_time: event.start_time,
             event_type: event.event_types?.name,
             status: invitation.status,
-            invited_by: invitation.invited_by_user?.pseudo
-          }
+            invited_by: invitation.invited_by_user?.pseudo,
+          },
         });
       });
     }
@@ -105,7 +109,8 @@ const getUserNotifications = async (req, res) => {
       notifications.push({
         id: `welcome-${userId}`,
         title: 'Bienvenue dans S4V Team !',
-        content: 'Votre compte a été créé avec succès. Vous recevrez ici vos invitations aux événements et autres notifications importantes.',
+        content:
+          'Votre compte a été créé avec succès. Vous recevrez ici vos invitations aux événements et autres notifications importantes.',
         type: 'info',
         is_read: false,
         event_id: null,
@@ -114,18 +119,19 @@ const getUserNotifications = async (req, res) => {
         priority: 'medium',
         metadata: {
           system: true,
-          category: 'welcome'
-        }
+          category: 'welcome',
+        },
       });
     }
 
     // Filtrer si on ne veut que les non lues
-    const filteredNotifications = unread_only === 'true' 
-      ? notifications.filter(n => !n.is_read)
-      : notifications;
+    const filteredNotifications =
+      unread_only === 'true'
+        ? notifications.filter((n) => !n.is_read)
+        : notifications;
 
     // Compter les notifications non lues
-    const unreadCount = notifications.filter(n => !n.is_read).length;
+    const unreadCount = notifications.filter((n) => !n.is_read).length;
 
     const result = {
       notifications: filteredNotifications,
@@ -136,12 +142,12 @@ const getUserNotifications = async (req, res) => {
     // Mettre en cache pour 1 minute
     cacheService.set(cacheKey, result, 60);
     res.json(successResponse(result));
-
   } catch (error) {
     console.error('Erreur getUserNotifications:', error);
     res.status(error.statusCode || 500).json({
       success: false,
-      message: error.message || 'Erreur lors de la récupération des notifications',
+      message:
+        error.message || 'Erreur lors de la récupération des notifications',
     });
   }
 };
@@ -194,18 +200,21 @@ const markAsRead = async (req, res) => {
     // Analyser l'ID pour déterminer le type
     if (id.startsWith('invitation-')) {
       const invitationId = id.replace('invitation-', '');
-      
+
       // Marquer l'invitation comme lue
       const { error } = await supabase
         .from('event_invitations')
-        .update({ 
-          last_reminder_sent: new Date().toISOString()
+        .update({
+          last_reminder_sent: new Date().toISOString(),
         })
         .eq('id', invitationId)
         .eq('user_id', userId);
 
       if (error) {
-        throw new AppError(`Erreur lors de la mise à jour: ${error.message}`, 400);
+        throw new AppError(
+          `Erreur lors de la mise à jour: ${error.message}`,
+          400
+        );
       }
     }
 
@@ -217,7 +226,8 @@ const markAsRead = async (req, res) => {
     console.error('Erreur markAsRead:', error);
     res.status(error.statusCode || 500).json({
       success: false,
-      message: error.message || 'Erreur lors de la mise à jour de la notification',
+      message:
+        error.message || 'Erreur lors de la mise à jour de la notification',
     });
   }
 };
@@ -233,8 +243,8 @@ const markAllAsRead = async (req, res) => {
     // Marquer toutes les invitations pendantes comme lues
     const { error } = await supabase
       .from('event_invitations')
-      .update({ 
-        last_reminder_sent: now
+      .update({
+        last_reminder_sent: now,
       })
       .eq('user_id', userId)
       .eq('status', 'pending');
@@ -246,12 +256,15 @@ const markAllAsRead = async (req, res) => {
     // Invalider le cache
     cacheService.invalidateUserPattern(`notifications:${userId}`);
 
-    res.json(successResponse(null, 'Toutes les notifications marquées comme lues'));
+    res.json(
+      successResponse(null, 'Toutes les notifications marquées comme lues')
+    );
   } catch (error) {
     console.error('Erreur markAllAsRead:', error);
     res.status(error.statusCode || 500).json({
       success: false,
-      message: error.message || 'Erreur lors de la mise à jour des notifications',
+      message:
+        error.message || 'Erreur lors de la mise à jour des notifications',
     });
   }
 };
@@ -266,13 +279,15 @@ const deleteNotification = async (req, res) => {
 
     // Les notifications système ne peuvent pas être supprimées
     if (id.startsWith('welcome-') || id.startsWith('system-')) {
-      return res.json(successResponse(null, 'Notification système ne peut pas être supprimée'));
+      return res.json(
+        successResponse(null, 'Notification système ne peut pas être supprimée')
+      );
     }
 
     // Analyser l'ID pour déterminer le type
     if (id.startsWith('invitation-')) {
       const invitationId = id.replace('invitation-', '');
-      
+
       // Supprimer l'invitation
       const { error } = await supabase
         .from('event_invitations')
@@ -281,7 +296,10 @@ const deleteNotification = async (req, res) => {
         .eq('user_id', userId);
 
       if (error) {
-        throw new AppError(`Erreur lors de la suppression: ${error.message}`, 400);
+        throw new AppError(
+          `Erreur lors de la suppression: ${error.message}`,
+          400
+        );
       }
     }
 
@@ -293,7 +311,8 @@ const deleteNotification = async (req, res) => {
     console.error('Erreur deleteNotification:', error);
     res.status(error.statusCode || 500).json({
       success: false,
-      message: error.message || 'Erreur lors de la suppression de la notification',
+      message:
+        error.message || 'Erreur lors de la suppression de la notification',
     });
   }
 };
@@ -311,13 +330,15 @@ const createEventInvitation = async (req, res) => {
     }
 
     // Créer les invitations
-    const invitations = user_ids.map(userId => ({
+    const invitations = user_ids.map((userId) => ({
       event_id,
       user_id: userId,
       invited_by: invitedBy,
       status: 'pending',
       sent_at: new Date().toISOString(),
-      expires_at: expires_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      expires_at:
+        expires_at ||
+        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     }));
 
     const { data, error } = await supabase
@@ -326,15 +347,22 @@ const createEventInvitation = async (req, res) => {
       .select();
 
     if (error) {
-      throw new AppError(`Erreur lors de la création des invitations: ${error.message}`, 400);
+      throw new AppError(
+        `Erreur lors de la création des invitations: ${error.message}`,
+        400
+      );
     }
 
     // Invalider le cache
-    user_ids.forEach(userId => {
+    user_ids.forEach((userId) => {
       cacheService.invalidateUserPattern(`notifications:${userId}`);
     });
 
-    res.status(201).json(successResponse(data, `${data.length} invitations créées avec succès`));
+    res
+      .status(201)
+      .json(
+        successResponse(data, `${data.length} invitations créées avec succès`)
+      );
   } catch (error) {
     console.error('Erreur createEventInvitation:', error);
     res.status(error.statusCode || 500).json({
@@ -352,8 +380,15 @@ const respondToInvitation = async (req, res) => {
     const { invitation_id, status } = req.body;
     const userId = req.user.id;
 
-    if (!invitation_id || !status || !['accepted', 'declined'].includes(status)) {
-      throw new AppError('Invitation ID et statut (accepted/declined) requis', 400);
+    if (
+      !invitation_id ||
+      !status ||
+      !['accepted', 'declined'].includes(status)
+    ) {
+      throw new AppError(
+        'Invitation ID et statut (accepted/declined) requis',
+        400
+      );
     }
 
     // Mettre à jour l'invitation
@@ -361,7 +396,7 @@ const respondToInvitation = async (req, res) => {
       .from('event_invitations')
       .update({
         status,
-        sent_at: new Date().toISOString()
+        sent_at: new Date().toISOString(),
       })
       .eq('id', invitation_id)
       .eq('user_id', userId)
@@ -369,7 +404,10 @@ const respondToInvitation = async (req, res) => {
       .single();
 
     if (updateError) {
-      throw new AppError(`Erreur lors de la réponse: ${updateError.message}`, 400);
+      throw new AppError(
+        `Erreur lors de la réponse: ${updateError.message}`,
+        400
+      );
     }
 
     // Si accepté, créer une participation
@@ -382,7 +420,7 @@ const respondToInvitation = async (req, res) => {
           status: 'confirmed',
           invited_by: invitation.invited_by,
           invited_at: invitation.sent_at,
-          responded_at: new Date().toISOString()
+          responded_at: new Date().toISOString(),
         });
 
       if (participationError) {
@@ -393,13 +431,14 @@ const respondToInvitation = async (req, res) => {
     // Invalider le cache
     cacheService.invalidateUserPattern(`notifications:${userId}`);
 
-    const message = status === 'accepted' ? 'Invitation acceptée' : 'Invitation refusée';
+    const message =
+      status === 'accepted' ? 'Invitation acceptée' : 'Invitation refusée';
     res.json(successResponse(invitation, message));
   } catch (error) {
     console.error('Erreur respondToInvitation:', error);
     res.status(error.statusCode || 500).json({
       success: false,
-      message: error.message || 'Erreur lors de la réponse à l\'invitation',
+      message: error.message || "Erreur lors de la réponse à l'invitation",
     });
   }
 };
@@ -426,7 +465,8 @@ const getUserPreferences = async (req, res) => {
     console.error('Erreur getUserPreferences:', error);
     res.status(error.statusCode || 500).json({
       success: false,
-      message: error.message || 'Erreur lors de la récupération des préférences',
+      message:
+        error.message || 'Erreur lors de la récupération des préférences',
     });
   }
 };
@@ -437,7 +477,9 @@ const getUserPreferences = async (req, res) => {
 const updateUserPreferences = async (req, res) => {
   try {
     const preferences = req.body;
-    res.json(successResponse(preferences, 'Préférences mises à jour avec succès'));
+    res.json(
+      successResponse(preferences, 'Préférences mises à jour avec succès')
+    );
   } catch (error) {
     console.error('Erreur updateUserPreferences:', error);
     res.status(error.statusCode || 500).json({
@@ -483,10 +525,10 @@ const getNotificationStats = async (req, res) => {
 
     const stats = {
       total: invitations?.length || 0,
-      pending: invitations?.filter(i => i.status === 'pending').length || 0,
-      accepted: invitations?.filter(i => i.status === 'accepted').length || 0,
-      declined: invitations?.filter(i => i.status === 'declined').length || 0,
-      expired: invitations?.filter(i => i.status === 'expired').length || 0,
+      pending: invitations?.filter((i) => i.status === 'pending').length || 0,
+      accepted: invitations?.filter((i) => i.status === 'accepted').length || 0,
+      declined: invitations?.filter((i) => i.status === 'declined').length || 0,
+      expired: invitations?.filter((i) => i.status === 'expired').length || 0,
     };
 
     res.json(successResponse(stats));
@@ -494,7 +536,8 @@ const getNotificationStats = async (req, res) => {
     console.error('Erreur getNotificationStats:', error);
     res.status(error.statusCode || 500).json({
       success: false,
-      message: error.message || 'Erreur lors de la récupération des statistiques',
+      message:
+        error.message || 'Erreur lors de la récupération des statistiques',
     });
   }
 };

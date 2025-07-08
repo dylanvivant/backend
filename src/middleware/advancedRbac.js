@@ -20,20 +20,8 @@ class AdvancedRbacMiddleware {
           });
         }
 
-        // Récupérer les rôles de l'utilisateur
-        const userRoles = await roleService.getUserRoles(user.id);
-
         // Vérifier si l'utilisateur a la permission
-        let hasPermission = false;
-
-        for (const role of userRoles) {
-          const rolePermissions = await roleService.getRolePermissions(role.id);
-
-          if (rolePermissions.some((p) => p.name === permission)) {
-            hasPermission = true;
-            break;
-          }
-        }
+        const hasPermission = await roleService.userHasPermission(user.id, permission);
 
         if (!hasPermission) {
           return res.status(403).json({
@@ -144,26 +132,17 @@ class AdvancedRbacMiddleware {
           });
         }
 
-        const userRoles = await roleService.getUserRoles(user.id);
-        const userPermissions = [];
-
-        // Récupérer toutes les permissions de l'utilisateur
-        for (const role of userRoles) {
-          const rolePermissions = await roleService.getRolePermissions(role.id);
-          userPermissions.push(...rolePermissions.map((p) => p.name));
-        }
-
-        // Supprimer les doublons
-        const uniquePermissions = [...new Set(userPermissions)];
+        const userPermissions = await roleService.getUserPermissions(user.id);
+        const userPermissionNames = userPermissions.map((p) => p.name);
 
         // Vérifier si toutes les permissions requises sont présentes
         const hasAllPermissions = permissions.every((permission) =>
-          uniquePermissions.includes(permission)
+          userPermissionNames.includes(permission)
         );
 
         if (!hasAllPermissions) {
           const missingPermissions = permissions.filter(
-            (permission) => !uniquePermissions.includes(permission)
+            (permission) => !userPermissionNames.includes(permission)
           );
 
           return res.status(403).json({
@@ -200,21 +179,12 @@ class AdvancedRbacMiddleware {
           });
         }
 
-        const userRoles = await roleService.getUserRoles(user.id);
-        const userPermissions = [];
-
-        // Récupérer toutes les permissions de l'utilisateur
-        for (const role of userRoles) {
-          const rolePermissions = await roleService.getRolePermissions(role.id);
-          userPermissions.push(...rolePermissions.map((p) => p.name));
-        }
-
-        // Supprimer les doublons
-        const uniquePermissions = [...new Set(userPermissions)];
+        const userPermissions = await roleService.getUserPermissions(user.id);
+        const userPermissionNames = userPermissions.map((p) => p.name);
 
         // Vérifier si au moins une permission requise est présente
         const hasAnyPermission = permissions.some((permission) =>
-          uniquePermissions.includes(permission)
+          userPermissionNames.includes(permission)
         );
 
         if (!hasAnyPermission) {
@@ -252,18 +222,7 @@ class AdvancedRbacMiddleware {
         }
 
         const permission = `${resource}:${action}`;
-        const userRoles = await roleService.getUserRoles(user.id);
-
-        let hasPermission = false;
-
-        for (const role of userRoles) {
-          const rolePermissions = await roleService.getRolePermissions(role.id);
-
-          if (rolePermissions.some((p) => p.name === permission)) {
-            hasPermission = true;
-            break;
-          }
-        }
+        const hasPermission = await roleService.userHasPermission(user.id, permission);
 
         if (!hasPermission) {
           return res.status(403).json({
@@ -364,17 +323,7 @@ class AdvancedRbacMiddleware {
         }
 
         // Vérifier si l'utilisateur a la permission
-        const userRoles = await roleService.getUserRoles(user.id);
-        let hasPermission = false;
-
-        for (const role of userRoles) {
-          const rolePermissions = await roleService.getRolePermissions(role.id);
-
-          if (rolePermissions.some((p) => p.name === permission)) {
-            hasPermission = true;
-            break;
-          }
-        }
+        const hasPermission = await roleService.userHasPermission(user.id, permission);
 
         if (!hasPermission) {
           return res.status(403).json({
@@ -409,20 +358,11 @@ class AdvancedRbacMiddleware {
         }
 
         const userRoles = await roleService.getUserRoles(user.id);
-        const userPermissions = [];
-
-        // Récupérer toutes les permissions de l'utilisateur
-        for (const role of userRoles) {
-          const rolePermissions = await roleService.getRolePermissions(role.id);
-          userPermissions.push(...rolePermissions.map((p) => p.name));
-        }
-
-        // Supprimer les doublons
-        const uniquePermissions = [...new Set(userPermissions)];
+        const userPermissions = await roleService.getUserPermissions(user.id);
 
         // Enrichir la requête
         req.user.roles = userRoles;
-        req.user.permissions = uniquePermissions;
+        req.user.permissions = userPermissions.map(p => p.name);
 
         next();
       } catch (error) {

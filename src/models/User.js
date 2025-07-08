@@ -17,10 +17,27 @@ class User extends BaseModel {
       password_hash: hashedPassword,
       verification_token: verificationToken,
       is_verified: false,
+      must_change_password: userData.must_change_password === true,
     };
 
     delete newUser.password;
     return await this.create(newUser);
+  }
+
+  // Changer le mot de passe et désactiver le flag must_change_password
+  async updatePassword(userId, newPassword) {
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const { data, error } = await this.supabase
+      .from(this.tableName)
+      .update({
+        password_hash: hashedPassword,
+        must_change_password: false,
+      })
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
   }
 
   // Trouver par email

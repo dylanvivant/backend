@@ -38,45 +38,37 @@ router.post(
  * @desc    Récupérer tous les rôles
  * @access  Private (Admin, Manager)
  */
-router.get(
-  '/',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
-  async (req, res) => {
-    try {
-      const roles = await roleService.getAllRoles();
-      res.json(successResponse(roles));
-    } catch (error) {
-      console.error('Erreur getAllRoles:', error);
-      res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || 'Erreur lors de la récupération des rôles',
-      });
-    }
+router.get('/', AdvancedRbac.hasAnyRole(['Capitaine']), async (req, res) => {
+  try {
+    const roles = await roleService.getAllRoles();
+    res.json(successResponse(roles));
+  } catch (error) {
+    console.error('Erreur getAllRoles:', error);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Erreur lors de la récupération des rôles',
+    });
   }
-);
+});
 
 /**
  * @route   GET /api/roles/:id
  * @desc    Récupérer un rôle par ID
  * @access  Private (Admin, Manager)
  */
-router.get(
-  '/:id',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const role = await roleService.getRoleById(id);
-      res.json(successResponse(role));
-    } catch (error) {
-      console.error('Erreur getRoleById:', error);
-      res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || 'Erreur lors de la récupération du rôle',
-      });
-    }
+router.get('/:id', AdvancedRbac.hasAnyRole(['Capitaine']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const role = await roleService.getRoleById(id);
+    res.json(successResponse(role));
+  } catch (error) {
+    console.error('Erreur getRoleById:', error);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Erreur lors de la récupération du rôle',
+    });
   }
-);
+});
 
 /**
  * @route   PUT /api/roles/:id
@@ -128,7 +120,7 @@ router.delete('/:id', AdvancedRbac.hasRole('admin'), async (req, res) => {
  */
 router.post(
   '/:roleId/users/:userId',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   async (req, res) => {
     try {
       const { roleId, userId } = req.params;
@@ -151,7 +143,7 @@ router.post(
  */
 router.delete(
   '/:roleId/users/:userId',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   async (req, res) => {
     try {
       const { roleId, userId } = req.params;
@@ -208,7 +200,7 @@ router.get('/users/:userId', async (req, res) => {
  */
 router.get(
   '/:roleId/permissions',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   async (req, res) => {
     try {
       const { roleId } = req.params;

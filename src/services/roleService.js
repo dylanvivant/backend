@@ -139,8 +139,9 @@ class RoleService {
   async assignRoleToUser(userId, roleId) {
     try {
       const { data, error } = await supabase
-        .from('user_roles')
-        .insert([{ user_id: userId, role_id: roleId }])
+        .from('users')
+        .update({ role_id: roleId })
+        .eq('id', userId)
         .select()
         .single();
 
@@ -161,14 +162,28 @@ class RoleService {
   }
 
   /**
-   * Retirer un rôle d'un utilisateur
+   * Retirer un rôle d'un utilisateur (assigner le rôle par défaut)
    */
   async removeRoleFromUser(userId, roleId) {
     try {
+      // Récupérer le rôle par défaut (par exemple 'user')
+      const { data: defaultRole, error: defaultRoleError } = await supabase
+        .from('roles')
+        .select('id')
+        .eq('name', 'Joueur')
+        .single();
+
+      if (defaultRoleError) {
+        throw new AppError(
+          `Erreur lors de la récupération du rôle par défaut: ${defaultRoleError.message}`,
+          400
+        );
+      }
+
       const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
+        .from('users')
+        .update({ role_id: defaultRole.id })
+        .eq('id', userId)
         .eq('role_id', roleId);
 
       if (error) {
@@ -188,28 +203,42 @@ class RoleService {
   }
 
   /**
-   * Récupérer les rôles d'un utilisateur
+   * Récupérer le rôle d'un utilisateur
    */
   async getUserRoles(userId) {
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select(
-          `
-          *,
-          roles (*)
-        `
-        )
-        .eq('user_id', userId);
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('role_id')
+        .eq('id', userId)
+        .single();
 
-      if (error) {
+      if (userError) {
         throw new AppError(
-          `Erreur lors de la récupération des rôles: ${error.message}`,
+          `Erreur lors de la récupération de l'utilisateur: ${userError.message}`,
           400
         );
       }
 
-      return data.map((ur) => ur.roles);
+      if (!user || !user.role_id) {
+        return [];
+      }
+
+      // Récupérer les détails du rôle
+      const { data: role, error: roleError } = await supabase
+        .from('roles')
+        .select('*')
+        .eq('id', user.role_id)
+        .single();
+
+      if (roleError) {
+        throw new AppError(
+          `Erreur lors de la récupération du rôle: ${roleError.message}`,
+          400
+        );
+      }
+
+      return role ? [role] : [];
     } catch (error) {
       throw new AppError(
         `Erreur lors de la récupération des rôles: ${error.message}`,
@@ -223,23 +252,37 @@ class RoleService {
    */
   async userHasRole(userId, roleName) {
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select(
-          `
-          roles (name)
-        `
-        )
-        .eq('user_id', userId);
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('role_id')
+        .eq('id', userId)
+        .single();
 
-      if (error) {
+      if (userError) {
         throw new AppError(
-          `Erreur lors de la vérification du rôle: ${error.message}`,
+          `Erreur lors de la vérification du rôle: ${userError.message}`,
           400
         );
       }
 
-      return data.some((ur) => ur.roles.name === roleName);
+      if (!user || !user.role_id) {
+        return false;
+      }
+
+      // Vérifier si le rôle correspond au nom recherché
+      const { data: role, error: roleError } = await supabase
+        .from('roles')
+        .select('name')
+        .eq('id', user.role_id)
+        .eq('name', roleName)
+        .single();
+
+      if (roleError) {
+        // Si le rôle n'existe pas, retourner false au lieu de lever une erreur
+        return false;
+      }
+
+      return !!role;
     } catch (error) {
       throw new AppError(
         `Erreur lors de la vérification du rôle: ${error.message}`,
@@ -253,24 +296,39 @@ class RoleService {
    */
   async getRolePermissions(roleId) {
     try {
-      const { data, error } = await supabase
-        .from('role_permissions')
-        .select(
-          `
-          *,
-          permissions (*)
-        `
-        )
-        .eq('role_id', roleId);
+      // Récupérer d'abord les role_permissions
+      const { data: rolePermissions, error: rolePermissionsError } =
+        await supabase
+          .from('role_permissions')
+          .select('permission_id')
+          .eq('role_id', roleId);
 
-      if (error) {
+      if (rolePermissionsError) {
         throw new AppError(
-          `Erreur lors de la récupération des permissions: ${error.message}`,
+          `Erreur lors de la récupération des permissions: ${rolePermissionsError.message}`,
           400
         );
       }
 
-      return data.map((rp) => rp.permissions);
+      if (!rolePermissions || rolePermissions.length === 0) {
+        return [];
+      }
+
+      // Récupérer les détails des permissions
+      const permissionIds = rolePermissions.map((rp) => rp.permission_id);
+      const { data: permissions, error: permissionsError } = await supabase
+        .from('permissions')
+        .select('*')
+        .in('id', permissionIds);
+
+      if (permissionsError) {
+        throw new AppError(
+          `Erreur lors de la récupération des permissions: ${permissionsError.message}`,
+          400
+        );
+      }
+
+      return permissions || [];
     } catch (error) {
       throw new AppError(
         `Erreur lors de la récupération des permissions: ${error.message}`,
@@ -301,6 +359,78 @@ class RoleService {
     } catch (error) {
       throw new AppError(
         `Erreur lors de l'assignation de la permission: ${error.message}`,
+        500
+      );
+    }
+  }
+
+  /**
+   * Récupérer toutes les permissions d'un utilisateur
+   */
+  async getUserPermissions(userId) {
+    try {
+      const userRoles = await this.getUserRoles(userId);
+      const allPermissions = [];
+
+      for (const role of userRoles) {
+        const permissions = await this.getRolePermissions(role.id);
+        allPermissions.push(...permissions);
+      }
+
+      // Supprimer les doublons
+      const uniquePermissions = allPermissions.filter(
+        (permission, index, self) =>
+          index === self.findIndex((p) => p.id === permission.id)
+      );
+
+      return uniquePermissions;
+    } catch (error) {
+      throw new AppError(
+        `Erreur lors de la récupération des permissions utilisateur: ${error.message}`,
+        500
+      );
+    }
+  }
+
+  /**
+   * Vérifier si un utilisateur a une permission spécifique
+   */
+  async userHasPermission(userId, permissionName) {
+    try {
+      const userPermissions = await this.getUserPermissions(userId);
+      return userPermissions.some(
+        (permission) => permission.name === permissionName
+      );
+    } catch (error) {
+      throw new AppError(
+        `Erreur lors de la vérification de la permission: ${error.message}`,
+        500
+      );
+    }
+  }
+
+  /**
+   * Récupérer le rôle d'un utilisateur par son ID
+   */
+  async getUserRole(userId) {
+    try {
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('role_id, roles(*)')
+        .eq('id', userId)
+        .single();
+
+      if (userError) {
+        throw new AppError(
+          `Erreur lors de la récupération du rôle utilisateur: ${userError.message}`,
+          400
+        );
+      }
+
+      return user?.roles || null;
+    } catch (error) {
+      throw new AppError(
+        `Erreur lors de la récupération du rôle utilisateur: ${error.message}`,
         500
       );
     }

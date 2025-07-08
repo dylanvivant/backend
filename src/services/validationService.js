@@ -239,7 +239,7 @@ class ValidationService {
       role: {
         required: true,
         type: 'string',
-        enum: ['admin', 'manager', 'player', 'coach'],
+        enum: ['Capitaine', 'player', 'coach'],
       },
     };
 

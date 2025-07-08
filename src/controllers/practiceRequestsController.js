@@ -3,6 +3,10 @@
 // src/controllers/practiceRequestsController.js
 // ========================================
 const { PracticeRequest, User } = require('../models');
+const emailService = require('../services/emailService');
+const Event = require('../models/Event');
+
+const eventModel = new Event();
 
 class PracticeRequestsController {
   // Créer une demande de practice (formulaire public)
@@ -30,7 +34,7 @@ class PracticeRequestsController {
   // Obtenir toutes les demandes (pour capitaines)
   async getAllRequests(req, res) {
     try {
-      const { status = 'pending' } = req.query;
+      const { status = 'all' } = req.query;
 
       let query = PracticeRequest.supabase
         .from('practice_requests')
@@ -111,15 +115,52 @@ class PracticeRequestsController {
         });
       }
 
-      // TODO: Envoyer un email de réponse à l'équipe demandeuse
-      // await emailService.sendPracticeResponse(handledRequest.captain_email, status, response);
+      // Envoi d'un mail au capitaine adverse
+      try {
+        await emailService.sendPracticeResponse(
+          handledRequest.captain_email,
+          status,
+          response,
+          handledRequest.team_name,
+          handledRequest.requested_date
+        );
+      } catch (e) {
+        console.error('Erreur envoi mail practice:', e);
+      }
+
+      // Création automatique d'un événement si accepté
+      let createdEvent = null;
+      if (status === 'accepted') {
+        try {
+          // Calculer la fin de l'événement basée sur la durée demandée
+          const startTime = new Date(handledRequest.requested_date);
+          const durationMinutes = handledRequest.duration_minutes || 120; // 2h par défaut
+          const endTime = new Date(
+            startTime.getTime() + durationMinutes * 60000
+          );
+
+          createdEvent = await eventModel.createEventWithParticipants({
+            title: `Practice vs ${handledRequest.team_name}`,
+            event_type_id: 4, // à adapter selon ta table event_types
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            description: `Practice acceptée avec l'équipe ${
+              handledRequest.team_name
+            }. ${handledRequest.message || ''}`,
+            created_by: req.user.id,
+            // opponent_team_id: null, // On ne peut pas créer une équipe adverse automatiquement
+          });
+        } catch (e) {
+          console.error('Erreur création event auto:', e);
+        }
+      }
 
       res.json({
         success: true,
         message: `Demande ${
           status === 'accepted' ? 'acceptée' : 'refusée'
         } avec succès`,
-        data: { request: handledRequest },
+        data: { request: handledRequest, event: createdEvent },
       });
     } catch (error) {
       console.error('Erreur traitement demande:', error);

@@ -9,13 +9,22 @@ class EventsController {
   // Obtenir tous les événements (avec filtres)
   async getAllEvents(req, res) {
     try {
-      const { type_id, upcoming = 'false', page = 1, limit = 10 } = req.query;
+      const {
+        type_id,
+        upcoming = 'false',
+        page = 1,
+        limit = 10,
+        start,
+        end,
+      } = req.query;
 
       const events = await Event.getAllEvents({
         type_id,
         upcoming: upcoming === 'true',
         page: parseInt(page),
         limit: parseInt(limit),
+        start,
+        end,
       });
 
       res.json({

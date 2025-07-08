@@ -20,227 +20,124 @@ class EmailService {
   // Template de base pour tous les emails
   getBaseTemplate(content, title = '') {
     return `
-        <!DOCTYPE html>
-        <html lang="fr">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>${title}</title>
-            <style>
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-                
-                body {
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    padding: 20px;
-                    line-height: 1.6;
-                }
-                
-                .email-container {
-                    max-width: 600px;
-                    margin: 0 auto;
-                    background: #ffffff;
-                    border-radius: 20px;
-                    overflow: hidden;
-                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-                    position: relative;
-                }
-                
-                .header {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    padding: 40px 30px;
-                    text-align: center;
-                    position: relative;
-                    overflow: hidden;
-                }
-                
-                .header::before {
-                    content: '';
-                    position: absolute;
-                    top: -50%;
-                    left: -50%;
-                    width: 200%;
-                    height: 200%;
-                    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-                    animation: shine 3s infinite;
-                }
-                
-                @keyframes shine {
-                    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-                    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-                }
-                
-                .logo {
-                    font-size: 28px;
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-                }
-                
-                .logo::before {
-                    content: '🎮';
-                    margin-right: 10px;
-                }
-                
-                .tagline {
-                    font-size: 14px;
-                    opacity: 0.9;
-                    font-weight: 300;
-                }
-                
-                .content {
-                    padding: 40px 30px;
-                    background: #ffffff;
-                }
-                
-                .content h1 {
-                    color: #2d3748;
-                    font-size: 24px;
-                    margin-bottom: 20px;
-                    text-align: center;
-                }
-                
-                .content h2 {
-                    color: #4a5568;
-                    font-size: 20px;
-                    margin-bottom: 15px;
-                }
-                
-                .content p {
-                    color: #4a5568;
-                    margin-bottom: 15px;
-                    font-size: 16px;
-                }
-                
-                .button {
-                    display: inline-block;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    padding: 15px 30px;
-                    text-decoration: none;
-                    border-radius: 50px;
-                    font-weight: bold;
-                    text-align: center;
-                    margin: 20px 0;
-                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-                    transition: all 0.3s ease;
-                    font-size: 16px;
-                }
-                
-                .button:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-                }
-                
-                .info-box {
-                    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-                    color: white;
-                    padding: 20px;
-                    border-radius: 15px;
-                    margin: 20px 0;
-                    text-align: center;
-                }
-                
-                .warning-box {
-                    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-                    color: #8b4513;
-                    padding: 15px;
-                    border-radius: 10px;
-                    margin: 20px 0;
-                    border-left: 4px solid #ff6b6b;
-                }
-                
-                .credentials {
-                    background: #f7fafc;
-                    border: 2px dashed #cbd5e0;
-                    border-radius: 10px;
-                    padding: 20px;
-                    margin: 20px 0;
-                    text-align: center;
-                }
-                
-                .credentials strong {
-                    color: #2d3748;
-                    font-size: 18px;
-                }
-                
-                .footer {
-                    background: #2d3748;
-                    color: #a0aec0;
-                    padding: 30px;
-                    text-align: center;
-                    font-size: 14px;
-                }
-                
-                .footer a {
-                    color: #667eea;
-                    text-decoration: none;
-                }
-                
-                .social-links {
-                    margin: 20px 0;
-                }
-                
-                .social-links a {
-                    display: inline-block;
-                    margin: 0 10px;
-                    color: #667eea;
-                    font-size: 18px;
-                    text-decoration: none;
-                }
-                
-                @media (max-width: 600px) {
-                    .email-container {
-                        margin: 10px;
-                        border-radius: 15px;
-                    }
-                    
-                    .header, .content {
-                        padding: 20px;
-                    }
-                    
-                    .logo {
-                        font-size: 24px;
-                    }
-                    
-                    .button {
-                        display: block;
-                        margin: 20px auto;
-                        width: fit-content;
-                    }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="email-container">
-                <div class="header">
-                    <div class="logo">ESPORT TEAM</div>
-                    <div class="tagline">Votre équipe de champions</div>
-                </div>
-                
-                <div class="content">
-                    ${content}
-                </div>
-                
-                <div class="footer">
-                    <div class="social-links">
-                        <a href="#" title="Discord">🎮</a>
-                        <a href="#" title="Twitter">🐦</a>
-                        <a href="#" title="Twitch">📺</a>
-                    </div>
-                    <p>© 2025 Esport Team - Tous droits réservés</p>
-                    <p>Vous recevez cet email car vous faites partie de notre équipe.</p>
-                    <p><a href="#">Se désabonner</a> | <a href="#">Préférences</a></p>
-                </div>
-            </div>
-        </body>
-        </html>
-        `;
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      <title>${title}</title>
+      <style>
+        body {
+          background: linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 100%);
+          font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+          margin: 0; padding: 0;
+        }
+        .container {
+          max-width: 520px;
+          margin: 40px auto;
+          background: #fff;
+          border-radius: 18px;
+          box-shadow: 0 8px 32px rgba(80, 112, 255, 0.10);
+          overflow: hidden;
+        }
+        .header {
+          background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+          color: #fff;
+          padding: 32px 24px 20px 24px;
+          text-align: center;
+        }
+        .header h1 {
+          margin: 0 0 8px 0;
+          font-size: 2rem;
+          letter-spacing: 1px;
+        }
+        .header .subtitle {
+          font-size: 1rem;
+          opacity: 0.85;
+        }
+        .content {
+          padding: 32px 24px 24px 24px;
+        }
+        .card {
+          background: #f1f5ff;
+          border-radius: 12px;
+          padding: 20px 18px;
+          margin: 24px 0;
+          box-shadow: 0 2px 8px rgba(99,102,241,0.07);
+        }
+        .card h2 {
+          margin: 0 0 10px 0;
+          font-size: 1.1rem;
+          color: #6366f1;
+        }
+        .card p, .card div {
+          margin: 0 0 6px 0;
+          color: #374151;
+        }
+        .btn {
+          display: inline-block;
+          background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+          color: #fff;
+          padding: 12px 28px;
+          border-radius: 999px;
+          text-decoration: none;
+          font-weight: 600;
+          margin: 18px 0 0 0;
+          box-shadow: 0 2px 8px rgba(99,102,241,0.10);
+          transition: background 0.2s;
+        }
+        .btn:hover {
+          background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+        }
+        .footer {
+          background: #232946;
+          color: #bfc9e0;
+          text-align: center;
+          padding: 24px 12px 18px 12px;
+          font-size: 0.95rem;
+        }
+        .footer a {
+          color: #a5b4fc;
+          text-decoration: none;
+          margin: 0 8px;
+        }
+        .footer .discord-btn {
+          display: inline-block;
+          background: #5865F2;
+          color: #fff;
+          border-radius: 8px;
+          padding: 8px 18px;
+          margin: 12px 0 0 0;
+          font-weight: 600;
+          text-decoration: none;
+          transition: background 0.2s;
+        }
+        .footer .discord-btn:hover {
+          background: #4752c4;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎮 Silent For Vibes</h1>
+          <div class="subtitle">Votre équipe de champions</div>
+        </div>
+        <div class="content">
+          ${content}
+        </div>
+        <div class="footer">
+          <div>
+            <a href="https://discord.gg/vE2aqfJT4H" class="discord-btn" target="_blank">Rejoindre le Discord</a> |
+          </div>
+          <div style="margin-top:10px; font-size:0.9em;">
+            © 2025 Silent For Vibes – Tous droits réservés
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
   }
 
   async sendVerificationEmail(email, token, pseudo) {
@@ -352,7 +249,7 @@ class EmailService {
         `;
 
     const mailOptions = {
-      from: `"🎮 Esport Team" <${process.env.EMAIL_USER}>`,
+      from: `"🎮 Silent For Vibes" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `🔔 ${eventTitle} - ${formattedDate}`,
       html: this.getBaseTemplate(content, 'Invitation événement'),
@@ -407,7 +304,7 @@ class EmailService {
         `;
 
     const mailOptions = {
-      from: `"🎮 Esport Team" <${process.env.EMAIL_USER}>`,
+      from: `"🎮 Silent For Vibes" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `🎉 ${pseudo}, bienvenue dans l'équipe ! Ton compte t'attend`,
       html: this.getBaseTemplate(content, 'Compte créé'),
@@ -442,7 +339,7 @@ class EmailService {
         `;
 
     const mailOptions = {
-      from: `"🎮 Esport Team" <${process.env.EMAIL_USER}>`,
+      from: `"🎮 Silent For Vibes" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `⏰ Rappel : ${eventTitle} bientôt !`,
       html: this.getBaseTemplate(content, 'Rappel événement'),
@@ -471,10 +368,67 @@ class EmailService {
         `;
 
     const mailOptions = {
-      from: `"🎮 Esport Team" <${process.env.EMAIL_USER}>`,
+      from: `"🎮 Silent For Vibes" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `🏆 Félicitations ${pseudo} ! Tu assures !`,
       html: this.getBaseTemplate(content, 'Félicitations'),
+    };
+
+    await this.transporter.sendMail(mailOptions);
+  }
+
+  // Email de réponse à une demande de practice
+  async sendPracticeResponse(email, status, response, teamName, requestedDate) {
+    const subject =
+      status === 'accepted'
+        ? '✅ Votre demande de practice a été acceptée !'
+        : '❌ Réponse à votre demande de practice';
+
+    const statusText = status === 'accepted' ? 'acceptée' : 'refusée';
+    const statusEmoji = status === 'accepted' ? '✅' : '❌';
+
+    const content = `
+      <h1>${statusEmoji} Réponse à votre demande de practice</h1>
+      <p>Bonjour,</p>
+      <p>Nous avons le plaisir de vous informer que votre demande de practice a été <strong>${statusText}</strong>.</p>
+      
+      <div class="info-box">
+        <h2>📋 Détails de la demande</h2>
+        <p><strong>Équipe :</strong> ${teamName}</p>
+        <p><strong>Date demandée :</strong> ${new Date(
+          requestedDate
+        ).toLocaleDateString('fr-FR')}</p>
+        <p><strong>Statut :</strong> ${statusText}</p>
+      </div>
+      
+      ${
+        response
+          ? `
+        <div class="warning-box">
+          <h3>💬 Message de l'équipe</h3>
+          <p>${response}</p>
+        </div>
+      `
+          : ''
+      }
+      
+      ${
+        status === 'accepted'
+          ? `
+        <p>Nous vous contacterons bientôt pour organiser les détails de la session.</p>
+        <p>Préparez-vous pour un entraînement intense ! 💪</p>
+      `
+          : `
+        <p>Nous vous remercions de votre intérêt et espérons pouvoir collaborer à l'avenir.</p>
+      `
+      }
+    `;
+
+    const mailOptions = {
+      from: `"🎮 Silent For Vibes" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: subject,
+      html: this.getBaseTemplate(content, 'Réponse practice'),
     };
 
     await this.transporter.sendMail(mailOptions);

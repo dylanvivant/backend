@@ -16,7 +16,7 @@ router.use(authenticate);
 // ========================================
 
 // Obtenir les métriques de base
-router.get('/metrics', authorize(['admin', 'manager']), async (req, res) => {
+router.get('/metrics', authorize(['Capitaine']), async (req, res) => {
   try {
     const metrics = monitoringService.getMetrics();
 
@@ -86,7 +86,7 @@ router.get('/metrics/export', authorize(['admin']), async (req, res) => {
 // ========================================
 
 // Vérifier la santé du système
-router.get('/health', authorize(['admin', 'manager']), async (req, res) => {
+router.get('/health', authorize(['Capitaine']), async (req, res) => {
   try {
     const healthStatus = monitoringService.getHealthStatus();
     const healthChecks = monitoringService.performHealthChecks();
@@ -140,7 +140,7 @@ router.get('/health/simple', async (req, res) => {
 // ========================================
 
 // Obtenir les alertes actives
-router.get('/alerts', authorize(['admin', 'manager']), async (req, res) => {
+router.get('/alerts', authorize(['Capitaine']), async (req, res) => {
   try {
     const alerts = monitoringService.getActiveAlerts();
 
@@ -160,59 +160,51 @@ router.get('/alerts', authorize(['admin', 'manager']), async (req, res) => {
 });
 
 // Obtenir l'historique des alertes
-router.get(
-  '/alerts/history',
-  authorize(['admin', 'manager']),
-  async (req, res) => {
-    try {
-      const { limit = 50 } = req.query;
-      const alerts = monitoringService.getAlertHistory(parseInt(limit));
+router.get('/alerts/history', authorize(['Capitaine']), async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const alerts = monitoringService.getAlertHistory(parseInt(limit));
 
-      res.json({
-        success: true,
-        data: alerts,
-        message: 'Historique des alertes récupéré avec succès',
-      });
-    } catch (error) {
-      console.error('Erreur récupération historique alertes:', error);
-      res.status(500).json({
-        success: false,
-        message: "Erreur lors de la récupération de l'historique des alertes",
-        error: error.message,
-      });
-    }
+    res.json({
+      success: true,
+      data: alerts,
+      message: 'Historique des alertes récupéré avec succès',
+    });
+  } catch (error) {
+    console.error('Erreur récupération historique alertes:', error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de la récupération de l'historique des alertes",
+      error: error.message,
+    });
   }
-);
+});
 
 // Obtenir les statistiques d'alertes
-router.get(
-  '/alerts/stats',
-  authorize(['admin', 'manager']),
-  async (req, res) => {
-    try {
-      const { period = 'day' } = req.query;
-      const stats = monitoringService.getAlertStats(period);
+router.get('/alerts/stats', authorize(['Capitaine']), async (req, res) => {
+  try {
+    const { period = 'day' } = req.query;
+    const stats = monitoringService.getAlertStats(period);
 
-      res.json({
-        success: true,
-        data: stats,
-        message: "Statistiques d'alertes récupérées avec succès",
-      });
-    } catch (error) {
-      console.error('Erreur récupération stats alertes:', error);
-      res.status(500).json({
-        success: false,
-        message: "Erreur lors de la récupération des statistiques d'alertes",
-        error: error.message,
-      });
-    }
+    res.json({
+      success: true,
+      data: stats,
+      message: "Statistiques d'alertes récupérées avec succès",
+    });
+  } catch (error) {
+    console.error('Erreur récupération stats alertes:', error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de la récupération des statistiques d'alertes",
+      error: error.message,
+    });
   }
-);
+});
 
 // Résoudre une alerte
 router.post(
   '/alerts/:alertId/resolve',
-  authorize(['admin', 'manager']),
+  authorize(['Capitaine']),
   async (req, res) => {
     try {
       const { alertId } = req.params;
@@ -245,33 +237,28 @@ router.post(
 // ========================================
 
 // Obtenir les statistiques de performance
-router.get(
-  '/performance',
-  authorize(['admin', 'manager']),
-  async (req, res) => {
-    try {
-      const metrics = monitoringService.getDetailedMetrics();
-      const performance = metrics.performance;
+router.get('/performance', authorize(['Capitaine']), async (req, res) => {
+  try {
+    const metrics = monitoringService.getDetailedMetrics();
+    const performance = metrics.performance;
 
-      res.json({
-        success: true,
-        data: performance,
-        message: 'Statistiques de performance récupérées avec succès',
-      });
-    } catch (error) {
-      console.error('Erreur récupération performance:', error);
-      res.status(500).json({
-        success: false,
-        message:
-          'Erreur lors de la récupération des statistiques de performance',
-        error: error.message,
-      });
-    }
+    res.json({
+      success: true,
+      data: performance,
+      message: 'Statistiques de performance récupérées avec succès',
+    });
+  } catch (error) {
+    console.error('Erreur récupération performance:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des statistiques de performance',
+      error: error.message,
+    });
   }
-);
+});
 
 // Obtenir les métriques de requêtes
-router.get('/requests', authorize(['admin', 'manager']), async (req, res) => {
+router.get('/requests', authorize(['Capitaine']), async (req, res) => {
   try {
     const metrics = monitoringService.getMetrics();
     const requests = metrics.requests;
@@ -340,7 +327,7 @@ router.get('/system', authorize(['admin']), async (req, res) => {
 // ========================================
 
 // Obtenir toutes les données pour le dashboard
-router.get('/dashboard', authorize(['admin', 'manager']), async (req, res) => {
+router.get('/dashboard', authorize(['Capitaine']), async (req, res) => {
   try {
     const metrics = monitoringService.getDetailedMetrics();
     const activeAlerts = monitoringService.getActiveAlerts();

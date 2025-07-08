@@ -16,7 +16,7 @@ router.use(authenticate);
  */
 router.post(
   '/invitations',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   validate(schemas.notification.createInvitation),
   notificationController.createEventInvitation
 );

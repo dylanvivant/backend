@@ -7,7 +7,11 @@ const router = express.Router();
 
 // Middlewares
 const { authenticate } = require('../middleware/auth');
-const { requireCaptain, requireCaptainOrCoach } = require('../middleware/rbac');
+const {
+  requireCaptain,
+  requireCaptainOrCoach,
+  requireOwnershipOrRole,
+} = require('../middleware/rbac');
 const { validate, validateUuidParam } = require('../middleware/validation');
 const { userSchemas } = require('../validation/schemas');
 
@@ -44,7 +48,7 @@ router.post(
 // Mettre à jour un membre
 router.put(
   '/:id',
-  requireCaptain,
+  requireOwnershipOrRole([2]), // 2 = Capitaine, ou propriétaire du profil
   validateUuidParam('id'),
   validate(userSchemas.updateUser),
   usersController.updateMember
@@ -64,6 +68,14 @@ router.post(
   requireCaptain,
   validateUuidParam('id'),
   usersController.resetMemberPassword
+);
+
+// Changer le mot de passe d'un membre (reset ou update)
+router.put(
+  '/:id/password',
+  requireCaptain,
+  validateUuidParam('id'),
+  usersController.updateMemberPassword
 );
 
 // Routes pour capitaines/coaches

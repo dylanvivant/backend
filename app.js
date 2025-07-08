@@ -11,6 +11,8 @@ const eventRoutes = require('./src/routes/events');
 const practiceRoutes = require('./src/routes/practices');
 const nominationRoutes = require('./src/routes/nominations');
 const sessionNotesRoutes = require('./src/routes/sessionNotes');
+const mapsRoutes = require('./src/routes/maps');
+const opponentTeamsRoutes = require('./src/routes/opponentTeams');
 
 // Import des middlewares
 const errorHandler = require('./src/middleware/errorHandler');
@@ -65,6 +67,8 @@ app.use('/api/events', eventRoutes);
 app.use('/api/practices', practiceRoutes);
 app.use('/api/nominations', nominationRoutes);
 app.use('/api/session-notes', sessionNotesRoutes);
+app.use('/api/maps', mapsRoutes);
+app.use('/api/opponent-teams', opponentTeamsRoutes);
 
 // ========================================
 // GESTION DES ERREURS

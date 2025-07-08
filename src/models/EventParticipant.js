@@ -38,6 +38,39 @@ class EventParticipant extends BaseModel {
     return data;
   }
 
+  // Trouver les participants d'un événement
+  async findByEventId(eventId) {
+    const { data, error } = await this.supabase
+      .from(this.tableName)
+      .select(
+        `
+        *,
+        users(id, pseudo, email, discord_id, slack_id, player_types(name))
+        `
+      )
+      .eq('event_id', eventId);
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Trouver les participants d'un événement par IDs utilisateurs
+  async findByEventIdAndUserIds(eventId, userIds) {
+    const { data, error } = await this.supabase
+      .from(this.tableName)
+      .select(
+        `
+        *,
+        users(id, pseudo, email, discord_id, slack_id, player_types(name))
+        `
+      )
+      .eq('event_id', eventId)
+      .in('user_id', userIds);
+
+    if (error) throw error;
+    return data;
+  }
+
   // Marquer la présence
   async markAttendance(eventId, userIds, isPresent) {
     const updates = userIds.map((userId) => ({

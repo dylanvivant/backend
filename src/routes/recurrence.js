@@ -16,7 +16,7 @@ router.use(authenticate);
  */
 router.post(
   '/',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   validate(schemas.recurrence.create),
   recurrenceController.createRecurrence
 );
@@ -28,7 +28,7 @@ router.post(
  */
 router.get(
   '/',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   recurrenceController.getAllRecurrences
 );
 
@@ -39,7 +39,7 @@ router.get(
  */
 router.get(
   '/:id',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   recurrenceController.getRecurrenceById
 );
 
@@ -50,7 +50,7 @@ router.get(
  */
 router.put(
   '/:id',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   validate(schemas.recurrence.update),
   recurrenceController.updateRecurrence
 );
@@ -62,7 +62,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   recurrenceController.deleteRecurrence
 );
 
@@ -73,7 +73,7 @@ router.delete(
  */
 router.patch(
   '/:id/toggle',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   validate(schemas.recurrence.toggle),
   recurrenceController.toggleRecurrence
 );
@@ -85,7 +85,7 @@ router.patch(
  */
 router.post(
   '/preview',
-  AdvancedRbac.hasAnyRole(['admin', 'manager']),
+  AdvancedRbac.hasAnyRole(['Capitaine']),
   validate(schemas.recurrence.preview),
   recurrenceController.previewRecurrentEvents
 );

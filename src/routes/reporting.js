@@ -20,7 +20,7 @@ router.use(authenticate);
 // Générer un rapport de présence
 router.post(
   '/attendance',
-  authorize(['admin', 'manager']),
+  authorize(['Capitaine']),
   validateSchema(reportingSchemas.attendanceReport),
   async (req, res) => {
     try {
@@ -52,7 +52,7 @@ router.post(
 // Générer un rapport de performance
 router.post(
   '/performance',
-  authorize(['admin', 'manager']),
+  authorize(['Capitaine']),
   validateSchema(reportingSchemas.performanceReport),
   async (req, res) => {
     try {
@@ -84,7 +84,7 @@ router.post(
 // Générer un rapport d'événements
 router.post(
   '/events',
-  authorize(['admin', 'manager']),
+  authorize(['Capitaine']),
   validateSchema(reportingSchemas.eventsReport),
   async (req, res) => {
     try {
@@ -116,7 +116,7 @@ router.post(
 // Générer un rapport d'entraînement
 router.post(
   '/training',
-  authorize(['admin', 'manager']),
+  authorize(['Capitaine']),
   validateSchema(reportingSchemas.trainingReport),
   async (req, res) => {
     try {
@@ -148,7 +148,7 @@ router.post(
 // Générer un rapport complet
 router.post(
   '/comprehensive',
-  authorize(['admin', 'manager']),
+  authorize(['Capitaine']),
   validateSchema(reportingSchemas.comprehensiveReport),
   async (req, res) => {
     try {
@@ -183,7 +183,7 @@ router.post(
 // Générer un rapport personnalisé
 router.post(
   '/custom',
-  authorize(['admin', 'manager']),
+  authorize(['Capitaine']),
   validateSchema(reportingSchemas.customReport),
   async (req, res) => {
     try {
@@ -257,7 +257,7 @@ router.post(
 // Obtenir les statistiques de performance d'un utilisateur
 router.get(
   '/user/:userId/stats',
-  authorize(['admin', 'manager', 'captain']),
+  authorize(['Capitaine', 'captain']),
   async (req, res) => {
     try {
       const { userId } = req.params;
@@ -320,7 +320,7 @@ router.get('/my-stats', async (req, res) => {
 // ========================================
 
 // Obtenir les types de rapports disponibles
-router.get('/types', authorize(['admin', 'manager']), async (req, res) => {
+router.get('/types', authorize(['Capitaine']), async (req, res) => {
   try {
     const types = reportingService.getAvailableReportTypes();
 
@@ -340,7 +340,7 @@ router.get('/types', authorize(['admin', 'manager']), async (req, res) => {
 });
 
 // Obtenir les formats de rapports supportés
-router.get('/formats', authorize(['admin', 'manager']), async (req, res) => {
+router.get('/formats', authorize(['Capitaine']), async (req, res) => {
   try {
     const formats = {
       json: 'JSON - Format de données structurées',
@@ -371,7 +371,7 @@ router.get('/formats', authorize(['admin', 'manager']), async (req, res) => {
 // Planifier un rapport automatique
 router.post(
   '/schedule',
-  authorize(['admin', 'manager']),
+  authorize(['Capitaine']),
   validateSchema(reportingSchemas.scheduleReport),
   async (req, res) => {
     try {
@@ -415,7 +415,7 @@ router.post(
 );
 
 // Obtenir les rapports planifiés
-router.get('/scheduled', authorize(['admin', 'manager']), async (req, res) => {
+router.get('/scheduled', authorize(['Capitaine']), async (req, res) => {
   try {
     // Implémentation future - pour l'instant retourne un tableau vide
     const scheduledReports = [];

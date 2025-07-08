@@ -107,42 +107,7 @@ class Event extends BaseModel {
 
   // Obtenir tous les événements avec filtres
   async getAllEvents(filters = {}) {
-    let query = this.supabase.from(this.tableName).select(`
-      *,
-      event_types(name),
-      users!events_created_by_fkey(pseudo),
-      opponent_teams(name),
-      event_participants(
-        status,
-        users(id, pseudo, player_types(name))
-      )
-    `);
-
-    // Appliquer les filtres
-    if (filters.type_id) {
-      query = query.eq('event_type_id', filters.type_id);
-    }
-
-    if (filters.upcoming) {
-      query = query.gte('start_time', new Date().toISOString());
-    }
-
-    // Pagination
-    const { page = 1, limit = 10 } = filters;
-    const offset = (page - 1) * limit;
-    query = query.range(offset, offset + limit - 1);
-
-    const { data, error } = await query.order('start_time', {
-      ascending: true,
-    });
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  // Obtenir tous les événements avec pagination et filtres
-  async getAllEvents(filters = {}) {
-    const { type_id, upcoming, page = 1, limit = 10 } = filters;
+    const { type_id, upcoming, page = 1, limit = 10, start, end } = filters;
 
     let query = this.supabase.from(this.tableName).select(
       `
@@ -165,6 +130,13 @@ class Event extends BaseModel {
 
     if (upcoming) {
       query = query.gte('start_time', new Date().toISOString());
+    }
+
+    if (start) {
+      query = query.gte('start_time', start);
+    }
+    if (end) {
+      query = query.lte('end_time', end);
     }
 
     // Pagination
