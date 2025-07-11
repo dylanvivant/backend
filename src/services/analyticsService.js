@@ -213,13 +213,19 @@ class AnalyticsService {
       try {
         const { data: events, error: eventError } = await supabase
           .from('events')
-          .select('id, created_at, event_type')
+          .select('id, created_at, event_type_id')
           .gte('created_at', dateFrom);
 
-        if (!eventError) {
+        if (eventError) {
+          console.error('Erreur requête événements:', eventError);
+        } else {
           eventStats = events || [];
+          console.log(
+            `📊 Analytics - ${eventStats.length} événements trouvés pour la période ${period}`
+          );
         }
       } catch (e) {
+        console.error('Erreur analytics événements:', e);
         // Table events n'existe pas encore
       }
 
@@ -236,6 +242,9 @@ class AnalyticsService {
         (u) => new Date(u.created_at) >= last24h
       ).length;
 
+      // Demandes de practice en attente
+      const pendingRequests = await this.getPendingPracticeRequests();
+
       return {
         period,
         total_users: totalUsers,
@@ -244,6 +253,7 @@ class AnalyticsService {
           totalUsers > 0 ? ((verifiedUsers / totalUsers) * 100).toFixed(2) : 0,
         active_users_24h: activeUsers,
         total_events: totalEvents,
+        pending_practice_requests: pendingRequests,
         growth_rate: await this.calculateGrowthRate('users', period),
         updated_at: new Date().toISOString(),
       };
@@ -643,6 +653,240 @@ class AnalyticsService {
   // Nettoyer le cache
   clearCache() {
     return cacheService.invalidatePattern('analytics:.*');
+  }
+
+  // ========================================
+  // MÉTHODES PRIVÉES MANQUANTES
+  // ========================================
+
+  /**
+   * Obtenir le nombre total de membres
+   */
+  async getTotalMembers() {
+    try {
+      const { count, error } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        console.error('Erreur getTotalMembers:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Erreur getTotalMembers:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Obtenir le nombre de membres actifs dans une période
+   */
+  async getActiveMembers(days = 30) {
+    try {
+      const dateFrom = new Date();
+      dateFrom.setDate(dateFrom.getDate() - days);
+
+      // Pour l'instant, on considère les utilisateurs créés récemment comme "actifs"
+      // TODO: Utiliser une table de sessions/connexions pour une mesure plus précise
+      const { count, error } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', dateFrom.toISOString());
+
+      if (error) {
+        console.error('Erreur getActiveMembers:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Erreur getActiveMembers:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Obtenir le nombre d'événements à venir
+   */
+  async getUpcomingEvents() {
+    try {
+      const now = new Date().toISOString();
+
+      const { count, error } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .gte('start_time', now)
+        .eq('status', 'scheduled');
+
+      if (error) {
+        console.error('Erreur getUpcomingEvents:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Erreur getUpcomingEvents:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Obtenir le nombre d'événements complétés dans une période
+   */
+  async getCompletedEvents(days = 30) {
+    try {
+      const dateFrom = new Date();
+      dateFrom.setDate(dateFrom.getDate() - days);
+      const now = new Date().toISOString();
+
+      const { count, error } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', dateFrom.toISOString())
+        .lt('end_time', now)
+        .eq('status', 'completed');
+
+      if (error) {
+        console.error('Erreur getCompletedEvents:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Erreur getCompletedEvents:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Obtenir le nombre total de notes de session
+   */
+  async getTotalNotes() {
+    try {
+      const { count, error } = await supabase
+        .from('session_notes')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        console.error('Erreur getTotalNotes:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Erreur getTotalNotes:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Obtenir le nombre de devoirs en attente
+   */
+  async getPendingHomework() {
+    try {
+      const { count, error } = await supabase
+        .from('session_notes')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_homework', true)
+        .eq('is_completed', false);
+
+      if (error) {
+        console.error('Erreur getPendingHomework:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Erreur getPendingHomework:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Obtenir le nombre de demandes de practice en attente
+   */
+  async getPendingPracticeRequests() {
+    try {
+      const { count, error } = await supabase
+        .from('practice_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      if (error) {
+        console.error('Erreur getPendingPracticeRequests:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Erreur getPendingPracticeRequests:', error);
+      return 0;
+    }
+  }
+
+  // Méthodes pour les insights de coaching (stubs pour éviter les erreurs)
+  async getMostActiveMembers() {
+    return [];
+  }
+
+  async getLeastActiveMembers() {
+    return [];
+  }
+
+  async getHomeworkTrends() {
+    return [];
+  }
+
+  async getAttendanceTrends() {
+    return [];
+  }
+
+  async getRecommendedActions() {
+    return [];
+  }
+
+  // Méthodes pour les stats de joueur (stubs pour éviter les erreurs)
+  async getPlayerEventsAttended(userId) {
+    return 0;
+  }
+
+  async getPlayerEventsTotal(userId) {
+    return 0;
+  }
+
+  async getPlayerHomeworkCompleted(userId) {
+    return 0;
+  }
+
+  async getPlayerHomeworkTotal(userId) {
+    return 0;
+  }
+
+  async getPlayerNotesReceived(userId) {
+    return 0;
+  }
+
+  async getPlayerAverageAttendance(userId) {
+    return 0;
+  }
+
+  // Méthodes pour les métriques de performance (stubs pour éviter les erreurs)
+  async calculateAttendanceRate() {
+    return 0;
+  }
+
+  async calculateHomeworkCompletion() {
+    return 0;
+  }
+
+  async calculateEventFrequency() {
+    return 0;
+  }
+
+  async calculateMemberEngagement() {
+    return 0;
   }
 
   // Méthodes utilitaires privées

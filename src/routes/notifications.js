@@ -12,11 +12,11 @@ router.use(authenticate);
 /**
  * @route   POST /api/notifications/invitations
  * @desc    Créer des invitations d'événement (remplace la création de notification)
- * @access  Private (Admin, Manager)
+ * @access  Private (Joueur, Coach, Capitaine)
  */
 router.post(
   '/invitations',
-  AdvancedRbac.hasAnyRole(['Capitaine']),
+  AdvancedRbac.hasAnyRole(['Joueur', 'Coach', 'Capitaine']),
   validate(schemas.notification.createInvitation),
   notificationController.createEventInvitation
 );

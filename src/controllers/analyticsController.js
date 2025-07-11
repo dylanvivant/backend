@@ -4,6 +4,35 @@ const cacheService = require('../services/cacheService');
 
 class AnalyticsController {
   /**
+   * Récupérer l'aperçu de l'équipe (membres actifs, demandes en attente, etc.)
+   */
+  async getTeamOverview(req, res) {
+    try {
+      const cacheKey = 'analytics:team_overview';
+      const cached = cacheService.get(cacheKey);
+
+      if (cached) {
+        return res.json(successResponse(cached));
+      }
+
+      const overview = await analyticsService.getTeamOverview();
+
+      // Mettre en cache pour 10 minutes
+      cacheService.set(cacheKey, overview, 600);
+
+      res.json(successResponse(overview));
+    } catch (error) {
+      console.error('Erreur getTeamOverview:', error);
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message:
+          error.message ||
+          "Erreur lors de la récupération de l'aperçu de l'équipe",
+      });
+    }
+  }
+
+  /**
    * Récupérer les statistiques générales
    */
   async getGeneralStats(req, res) {

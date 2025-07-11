@@ -105,6 +105,29 @@ class Event extends BaseModel {
     return events;
   }
 
+  // Obtenir un événement avec ses participants
+  async findByIdWithParticipants(id) {
+    const { data, error } = await this.supabase
+      .from(this.tableName)
+      .select(
+        `
+          *,
+          event_types(name),
+          users!events_created_by_fkey(pseudo),
+          opponent_teams(name),
+          event_participants(
+            status,
+            users!event_participants_user_id_fkey(id, pseudo, player_types(name))
+          )
+        `
+      )
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   // Obtenir tous les événements avec filtres
   async getAllEvents(filters = {}) {
     const { type_id, upcoming, page = 1, limit = 10, start, end } = filters;

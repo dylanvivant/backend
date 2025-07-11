@@ -28,7 +28,15 @@ const baseSchemas = {
     'Radiant'
   ),
   date: Joi.date().iso(),
-  futureDate: Joi.date().iso().min('now'),
+  futureDate: Joi.date()
+    .iso()
+    .custom((value, helpers) => {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      if (value < fiveMinutesAgo) {
+        return helpers.error('date.min', { limit: fiveMinutesAgo });
+      }
+      return value;
+    }),
 };
 
 // Schémas d'authentification
@@ -116,12 +124,28 @@ const eventSchemas = {
   updateEvent: Joi.object({
     title: Joi.string().min(3).max(200),
     description: Joi.string().max(1000),
+    event_type_id: Joi.number().integer().min(1),
     start_time: baseSchemas.date,
     end_time: baseSchemas.date,
     duration_minutes: Joi.number().integer().min(15).max(480),
+
+    // Récurrence
+    is_recurring: Joi.boolean(),
+    recurrence_pattern: Joi.string().valid('daily', 'weekly', 'custom'),
+    recurrence_interval: Joi.number().integer().min(1).max(365),
+    recurrence_days_of_week: Joi.array().items(
+      Joi.number().integer().min(1).max(7)
+    ),
+    recurrence_end_date: baseSchemas.date,
+
+    // Détails session
     maps_played: Joi.array().items(Joi.string().max(50)),
     games_count: Joi.number().integer().min(1).max(20),
+    opponent_team_id: Joi.number().integer().min(1),
     status: Joi.string().valid('scheduled', 'completed', 'cancelled'),
+
+    // Participants
+    participant_ids: Joi.array().items(baseSchemas.uuid),
   }),
 
   respondToInvitation: Joi.object({

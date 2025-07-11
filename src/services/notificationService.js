@@ -183,9 +183,28 @@ L'équipe {teamName}`,
 
   // Envoyer via un canal spécifique
   async sendViaChannel(channel, recipient, subject, body, data) {
+    console.log(
+      `📧 sendViaChannel - canal: ${channel}, destinataire:`,
+      recipient.email
+    );
+
     switch (channel) {
       case 'email':
-        return await emailService.sendEmail(recipient.email, subject, body);
+        try {
+          // Utiliser la méthode correcte du service d'email
+          const result = await emailService.sendEventInvitation(
+            recipient.email,
+            recipient.name,
+            data.eventTitle || 'Événement',
+            data.eventDate || new Date(),
+            data.eventType || 'Session'
+          );
+          console.log('📧 Email envoyé avec succès à:', recipient.email);
+          return { success: true, result };
+        } catch (error) {
+          console.error('📧 Erreur envoi email à', recipient.email, ':', error);
+          return { success: false, error: error.message };
+        }
 
       case 'discord':
         if (recipient.discordId) {
@@ -263,28 +282,44 @@ L'équipe {teamName}`,
   // Envoyer des invitations pour un événement
   async sendEventInvitations(eventId, participantIds = []) {
     try {
-      const event = await Event.findById(eventId).populate('event_types');
+      console.log(
+        '📧 sendEventInvitations - eventId:',
+        eventId,
+        'participantIds:',
+        participantIds
+      );
+
+      // Récupérer l'événement avec Supabase (pas de .populate())
+      const event = await Event.findById(eventId);
       if (!event) {
         throw new Error('Événement non trouvé');
       }
 
-      // Si des participantIds sont fournis, les utiliser, sinon récupérer tous les participants
-      let participants;
-      if (participantIds.length > 0) {
-        participants = await EventParticipant.findByEventIdAndUserIds(
-          eventId,
-          participantIds
+      console.log('📧 Event found:', event);
+
+      // Récupérer les informations des participants directement via User.getEmailsByIds
+      if (participantIds.length === 0) {
+        console.log(
+          "📧 Aucun participant spécifié, pas d'envoi de notifications"
         );
-      } else {
-        participants = await EventParticipant.findByEventId(eventId);
+        return [];
       }
 
-      const recipients = participants.map((p) => ({
-        id: p.user_id,
-        name: p.users?.pseudo || 'Utilisateur',
-        email: p.users?.email,
-        discordId: p.users?.discord_id,
-        slackId: p.users?.slack_id,
+      const recipients = await User.getEmailsByIds(participantIds);
+      console.log('📧 Recipients found:', recipients);
+
+      if (!recipients || recipients.length === 0) {
+        console.log('📧 Aucun destinataire trouvé');
+        return [];
+      }
+
+      // Mapper vers le format attendu par sendNotification
+      const formattedRecipients = recipients.map((user) => ({
+        id: user.id,
+        name: user.pseudo || 'Utilisateur',
+        email: user.email,
+        discordId: user.discord_id,
+        slackId: user.slack_id,
       }));
 
       const eventData = {
@@ -296,12 +331,17 @@ L'équipe {teamName}`,
         }),
         eventDescription: event.description || 'Aucune description',
         teamName: 'S4V Team',
-        eventType: event.event_types?.name || 'Événement',
+        eventType: 'Événement', // Simplifier pour éviter les problèmes de relations
       };
 
+      console.log(
+        '📧 Sending notifications to:',
+        formattedRecipients.length,
+        'recipients'
+      );
       return await this.sendNotification(
         'event_created',
-        recipients,
+        formattedRecipients,
         eventData
       );
     } catch (error) {

@@ -2,18 +2,33 @@
 // EMAIL SERVICE MODERNE
 // src/services/emailService.js
 // ========================================
+require('dotenv').config();
 const nodemailer = require('nodemailer');
 
 class EmailService {
   constructor() {
+    // Configuration optimisée pour Gmail
     this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: false,
+      service: 'gmail', // Utiliser le service Gmail prédéfini
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // false pour port 587 (STARTTLS)
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      tls: {
+        rejectUnauthorized: false, // Pour éviter les problèmes SSL en dev
+      },
+    });
+
+    // Vérifier la configuration au démarrage
+    this.transporter.verify((error, success) => {
+      if (error) {
+        console.error('❌ Configuration email invalide:', error);
+      } else {
+        console.log('✅ Service email prêt');
+      }
     });
   }
 
@@ -196,10 +211,12 @@ class EmailService {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      timeZone: 'Europe/Paris',
     });
     const formattedTime = eventDateTime.toLocaleTimeString('fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'Europe/Paris',
     });
 
     const eventEmoji = {
@@ -429,6 +446,82 @@ class EmailService {
       to: email,
       subject: subject,
       html: this.getBaseTemplate(content, 'Réponse practice'),
+    };
+
+    await this.transporter.sendMail(mailOptions);
+  }
+
+  // Nouveau : Email de notification de réponse d'événement pour le créateur
+  async sendEventResponseNotification(
+    creatorEmail,
+    creatorPseudo,
+    playerPseudo,
+    eventTitle,
+    status,
+    eventDate,
+    eventType = 'Événement'
+  ) {
+    const statusText = status === 'accepted' ? 'accepté' : 'refusé';
+    const statusEmoji = status === 'accepted' ? '✅' : '❌';
+    const statusColor = status === 'accepted' ? '#16a34a' : '#dc2626';
+
+    const formattedDate = new Date(eventDate).toLocaleString('fr-FR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Paris',
+    });
+
+    const content = `
+            <h1>${statusEmoji} Réponse à votre invitation</h1>
+            
+            <p>Salut <strong>${creatorPseudo}</strong> ! 👋</p>
+            
+            <p>Vous avez reçu une réponse à votre invitation !</p>
+            
+            <div class="card">
+                <h2>🎮 ${eventTitle}</h2>
+                <p><strong>📅 Date :</strong> ${formattedDate}</p>
+                <p><strong>🎯 Type :</strong> ${eventType}</p>
+                <p><strong>👤 Joueur :</strong> ${playerPseudo}</p>
+                <p style="color: ${statusColor}; font-weight: bold; font-size: 18px;">
+                    ${statusEmoji} ${playerPseudo} a ${statusText} l'invitation
+                </p>
+            </div>
+            
+            ${
+              status === 'accepted'
+                ? `
+                <div style="background: #dcfce7; border: 1px solid #16a34a; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                    <p style="color: #16a34a; margin: 0; font-weight: bold;">🎉 Excellent ! Un joueur de plus pour votre événement !</p>
+                </div>
+            `
+                : `
+                <div style="background: #fee2e2; border: 1px solid #dc2626; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                    <p style="color: #dc2626; margin: 0; font-weight: bold;">😔 Dommage, ${playerPseudo} ne pourra pas participer.</p>
+                </div>
+            `
+            }
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="${
+                  process.env.FRONTEND_URL
+                }/events/${eventTitle}" class="btn">
+                    📋 Voir l'événement
+                </a>
+            </div>
+            
+            <p style="margin-top: 30px;">Vous pouvez consulter tous les détails et les autres réponses dans votre tableau de bord.</p>
+        `;
+
+    const mailOptions = {
+      from: `"🎮 Silent For Vibes" <${process.env.EMAIL_USER}>`,
+      to: creatorEmail,
+      subject: `${statusEmoji} ${playerPseudo} a ${statusText} votre invitation - ${eventTitle}`,
+      html: this.getBaseTemplate(content, 'Réponse invitation'),
     };
 
     await this.transporter.sendMail(mailOptions);

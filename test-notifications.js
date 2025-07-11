@@ -1,6 +1,6 @@
 // Test des nouvelles routes de notifications
 const testNotifications = async () => {
-  const baseURL = 'http://localhost:3000/api';
+  const baseURL = process.env.API_URL || 'http://localhost:3000/api';
 
   try {
     // 1. Test de connexion

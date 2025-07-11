@@ -5,6 +5,54 @@ const integrationService = require('../services/integrationService');
 const cacheService = require('../services/cacheService');
 
 /**
+ * Notifier le créateur d'un événement de la réponse d'un joueur
+ */
+const notifyEventCreator = async (event, player, status) => {
+  try {
+    // Ne pas notifier si le créateur répond à sa propre invitation
+    if (event.created_by === player.id) {
+      return;
+    }
+
+    const statusText = status === 'accepted' ? 'accepté' : 'refusé';
+    const statusEmoji = status === 'accepted' ? '✅' : '❌';
+
+    // Insérer la notification dans la table event_invitations pour maintenir la cohérence
+    const { error: notificationError } = await supabase
+      .from('event_invitations')
+      .insert({
+        event_id: event.id,
+        user_id: event.created_by,
+        invited_by: player.id,
+        status: 'notification', // Status spécial pour les notifications
+        sent_at: new Date().toISOString(),
+      });
+
+    if (notificationError) {
+      console.error('Erreur création notification:', notificationError);
+    }
+
+    // Envoyer l'email au créateur
+    await emailService.sendEventResponseNotification(
+      event.creator.email,
+      event.creator.pseudo,
+      player.pseudo,
+      event.title,
+      status,
+      event.start_time,
+      event.event_type?.name || 'Événement'
+    );
+
+    console.log(
+      `📧 Notification envoyée au créateur ${event.creator.pseudo} pour la réponse de ${player.pseudo}`
+    );
+  } catch (error) {
+    console.error('Erreur lors de la notification du créateur:', error);
+    // Ne pas faire échouer la réponse si la notification échoue
+  }
+};
+
+/**
  * Récupérer les notifications d'un utilisateur basées sur les invitations et participations
  */
 const getUserNotifications = async (req, res) => {
@@ -16,13 +64,22 @@ const getUserNotifications = async (req, res) => {
     const cacheKey = `notifications:${userId}:${page}:${limit}:${unread_only}`;
     const cached = cacheService.get(cacheKey);
 
+    console.log(
+      `🔍 [getUserNotifications] Cache key: ${cacheKey}, Cached: ${!!cached}`
+    );
+
     if (cached) {
+      console.log(`🔍 [getUserNotifications] Returning cached data:`, cached);
       return res.json(successResponse(cached));
     }
 
     const notifications = [];
 
     // 1. Récupérer les invitations pendantes (notifications non lues)
+    console.log(
+      `🔍 [getUserNotifications] userId: ${userId}, page: ${page}, limit: ${limit}, offset: ${offset}`
+    );
+
     const { data: invitations, error: invitationsError } = await supabase
       .from('event_invitations')
       .select(
@@ -44,6 +101,18 @@ const getUserNotifications = async (req, res) => {
       .order('sent_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
+    console.log(
+      `🔍 [getUserNotifications] Invitations found: ${
+        invitations?.length || 0
+      }, Error: ${invitationsError?.message || 'none'}`
+    );
+    if (invitations) {
+      console.log(
+        `🔍 [getUserNotifications] First invitation:`,
+        invitations[0]
+      );
+    }
+
     if (invitationsError) {
       console.error('Erreur récupération invitations:', invitationsError);
     } else if (invitations && invitations.length > 0) {
@@ -64,21 +133,34 @@ const getUserNotifications = async (req, res) => {
               event.title
             }" le ${new Date(event.start_time).toLocaleDateString('fr-FR')}`;
             isRead = false;
+            type = 'invitation';
             break;
           case 'accepted':
             title = `Invitation acceptée`;
             content = `Vous avez accepté l'invitation à "${event.title}"`;
             isRead = true;
+            type = 'success';
             break;
           case 'declined':
             title = `Invitation refusée`;
             content = `Vous avez refusé l'invitation à "${event.title}"`;
             isRead = true;
+            type = 'warning';
             break;
           case 'expired':
             title = `Invitation expirée`;
             content = `L'invitation à "${event.title}" a expiré`;
             isRead = true;
+            type = 'warning';
+            break;
+          case 'notification':
+            // Notification de réponse d'événement pour le créateur
+            const playerPseudo =
+              invitation.invited_by_user?.pseudo || 'Un joueur';
+            title = `✅ Réponse à votre invitation`;
+            content = `${playerPseudo} a répondu à votre invitation pour "${event.title}"`;
+            isRead = false;
+            type = 'event_response';
             break;
         }
 
@@ -138,6 +220,13 @@ const getUserNotifications = async (req, res) => {
       unread_count: unreadCount,
       total_count: notifications.length,
     };
+
+    console.log(`🔍 [getUserNotifications] Final result:`, {
+      total_notifications: notifications.length,
+      filtered_notifications: filteredNotifications.length,
+      unread_count: unreadCount,
+      first_notification: filteredNotifications[0]?.title,
+    });
 
     // Mettre en cache pour 1 minute
     cacheService.set(cacheKey, result, 60);
@@ -377,18 +466,48 @@ const createEventInvitation = async (req, res) => {
  */
 const respondToInvitation = async (req, res) => {
   try {
-    const { invitation_id, status } = req.body;
+    const { event_id, status } = req.body;
     const userId = req.user.id;
 
-    if (
-      !invitation_id ||
-      !status ||
-      !['accepted', 'declined'].includes(status)
-    ) {
-      throw new AppError(
-        'Invitation ID et statut (accepted/declined) requis',
-        400
-      );
+    console.log(
+      '🔄 respondToInvitation - event_id:',
+      event_id,
+      'status:',
+      status,
+      'userId:',
+      userId
+    );
+
+    if (!event_id || !status || !['accepted', 'declined'].includes(status)) {
+      throw new AppError('Event ID et statut (accepted/declined) requis', 400);
+    }
+
+    // Récupérer l'événement avec son créateur et les infos du joueur
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select(
+        `
+        *,
+        creator:users!events_created_by_fkey(id, email, pseudo),
+        event_type:event_types(name)
+      `
+      )
+      .eq('id', event_id)
+      .single();
+
+    if (eventError || !event) {
+      throw new AppError('Événement non trouvé', 404);
+    }
+
+    // Récupérer les informations du joueur qui répond
+    const { data: player, error: playerError } = await supabase
+      .from('users')
+      .select('id, email, pseudo')
+      .eq('id', userId)
+      .single();
+
+    if (playerError || !player) {
+      throw new AppError('Joueur non trouvé', 404);
     }
 
     // Mettre à jour l'invitation
@@ -396,9 +515,8 @@ const respondToInvitation = async (req, res) => {
       .from('event_invitations')
       .update({
         status,
-        sent_at: new Date().toISOString(),
       })
-      .eq('id', invitation_id)
+      .eq('event_id', event_id)
       .eq('user_id', userId)
       .select('*, events(title)')
       .single();
@@ -410,26 +528,35 @@ const respondToInvitation = async (req, res) => {
       );
     }
 
-    // Si accepté, créer une participation
+    // Si accepté, créer ou mettre à jour une participation
     if (status === 'accepted') {
       const { error: participationError } = await supabase
         .from('event_participants')
-        .insert({
-          event_id: invitation.event_id,
-          user_id: userId,
-          status: 'confirmed',
-          invited_by: invitation.invited_by,
-          invited_at: invitation.sent_at,
-          responded_at: new Date().toISOString(),
-        });
+        .upsert(
+          {
+            event_id: invitation.event_id,
+            user_id: userId,
+            status: 'confirmed',
+            invited_by: invitation.invited_by,
+            invited_at: invitation.sent_at,
+            responded_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'event_id,user_id',
+          }
+        );
 
       if (participationError) {
         console.error('Erreur création participation:', participationError);
       }
     }
 
+    // Notifier le créateur de l'événement
+    await notifyEventCreator(event, player, status);
+
     // Invalider le cache
     cacheService.invalidateUserPattern(`notifications:${userId}`);
+    cacheService.invalidateUserPattern(`notifications:${event.created_by}`);
 
     const message =
       status === 'accepted' ? 'Invitation acceptée' : 'Invitation refusée';

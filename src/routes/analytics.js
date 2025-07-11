@@ -16,8 +16,19 @@ router.use(authenticate);
  */
 router.get(
   '/general',
-  AdvancedRbac.hasAnyRole(['Capitaine']),
+  AdvancedRbac.hasAnyRole(['Capitaine', 'Coach']),
   analyticsController.getGeneralStats
+);
+
+/**
+ * @route   GET /api/analytics/team-overview
+ * @desc    Récupérer l'aperçu de l'équipe (membres actifs, demandes en attente, etc.)
+ * @access  Private (Capitaine, Coach)
+ */
+router.get(
+  '/team-overview',
+  AdvancedRbac.hasAnyRole(['Capitaine', 'Coach']),
+  analyticsController.getTeamOverview
 );
 
 /**

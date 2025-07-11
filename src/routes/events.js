@@ -18,6 +18,26 @@ const { eventSchemas } = require('../validation/schemas');
 // Controller
 const eventsController = require('../controllers/eventsController');
 
+// Middleware personnalisé pour autoriser les joueurs, coaches et capitaines
+const requirePlayerCoachOrCaptain = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentification requise',
+    });
+  }
+
+  // Autoriser les joueurs (role_id: 1), coaches (role_id: 3) et capitaines (role_id: 2)
+  if (![1, 2, 3].includes(req.user.role_id)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Accès réservé aux joueurs, coaches et capitaines',
+    });
+  }
+
+  next();
+};
+
 // Routes publiques (pour les membres de l'équipe)
 router.use(authenticate); // Toutes les routes nécessitent une authentification
 
@@ -41,8 +61,8 @@ router.patch(
   eventsController.respondToInvitation
 );
 
-// Routes protégées (Capitaine/Coach uniquement)
-router.use(requireCaptainOrCoach);
+// Routes protégées (Joueur/Coach/Capitaine)
+router.use(requirePlayerCoachOrCaptain);
 
 // Créer un événement
 router.post(

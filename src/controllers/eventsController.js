@@ -4,6 +4,7 @@
 // ========================================
 const { Event, EventParticipant, SessionNote, User } = require('../models');
 const emailService = require('../services/emailService');
+const notificationService = require('../services/notificationService');
 
 class EventsController {
   // Obtenir tous les événements (avec filtres)
@@ -45,7 +46,7 @@ class EventsController {
     try {
       const { id } = req.params;
 
-      const event = await Event.findById(id);
+      const event = await Event.findByIdWithParticipants(id);
       if (!event) {
         return res.status(404).json({
           success: false,
@@ -69,14 +70,18 @@ class EventsController {
   // Créer un événement
   async createEvent(req, res) {
     try {
+      console.log('--- [createEvent] Body reçu:', req.body);
       const { participant_ids, ...eventData } = req.body;
-
+      console.log('--- [createEvent] eventData:', eventData);
       // Données de base de l'événement
       const completeEventData = {
         ...eventData,
         created_by: req.user.id,
       };
-
+      console.log(
+        '--- [createEvent] completeEventData (avant insert):',
+        completeEventData
+      );
       let participantIdsToInvite = [];
 
       // Logique d'invitation selon le type d'événement
@@ -103,10 +108,33 @@ class EventsController {
         participantIdsToInvite
       );
 
-      // Envoyer les notifications d'invitation si des participants
+      // Créer aussi des entrées dans event_invitations pour les notifications
       if (participantIdsToInvite.length > 0) {
         try {
-          await this.sendEventInvitations(event, participantIdsToInvite);
+          const invitations = participantIdsToInvite.map((userId) => ({
+            event_id: event.id,
+            user_id: userId,
+            invited_by: req.user.id,
+            status: 'pending',
+            sent_at: new Date().toISOString(),
+            expires_at: new Date(
+              Date.now() + 7 * 24 * 60 * 60 * 1000
+            ).toISOString(), // 7 jours
+          }));
+
+          const { error: invitationError } = await Event.supabase
+            .from('event_invitations')
+            .insert(invitations);
+
+          if (invitationError) {
+            console.error('Erreur création invitations:', invitationError);
+          }
+
+          // Envoyer les notifications d'invitation
+          await notificationService.sendEventInvitations(
+            event.id,
+            participantIdsToInvite
+          );
         } catch (notificationError) {
           console.warn('Erreur envoi notifications:', notificationError);
           // Ne pas faire échouer la création si les notifications échouent
@@ -136,7 +164,15 @@ class EventsController {
   async updateEvent(req, res) {
     try {
       const { id } = req.params;
-      const updates = req.body;
+      console.log('🔄 updateEvent - Full req.body:', req.body);
+      const { participant_ids, ...updates } = req.body;
+
+      console.log(
+        '🔄 updateEvent - id:',
+        id,
+        'participant_ids:',
+        participant_ids
+      );
 
       // Vérifier que l'utilisateur peut modifier cet événement
       const event = await Event.findById(id, 'created_by');
@@ -150,7 +186,7 @@ class EventsController {
       // Seul le créateur ou un capitaine/coach peut modifier
       if (
         event.created_by !== req.user.id &&
-        ![2, 3].includes(req.user.role_id)
+        ![1, 2, 3].includes(req.user.role_id) // Autoriser joueurs (1), capitaines (2), coaches (3)
       ) {
         return res.status(403).json({
           success: false,
@@ -158,12 +194,101 @@ class EventsController {
         });
       }
 
+      // Gérer les nouveaux participants si fournis
+      let newParticipantsNotified = 0;
+      if (participant_ids && Array.isArray(participant_ids)) {
+        try {
+          // Récupérer les participants actuels
+          const { data: currentParticipants } = await Event.supabase
+            .from('event_participants')
+            .select('user_id')
+            .eq('event_id', id);
+
+          const currentParticipantIds = currentParticipants.map(
+            (p) => p.user_id
+          );
+          const newParticipantIds = participant_ids.filter(
+            (userId) => !currentParticipantIds.includes(userId)
+          );
+
+          console.log('🔄 Current participants:', currentParticipantIds);
+          console.log('🔄 New participants to add:', newParticipantIds);
+
+          // Ajouter les nouveaux participants
+          if (newParticipantIds.length > 0) {
+            const newParticipants = newParticipantIds.map((userId) => ({
+              event_id: id,
+              user_id: userId,
+              status: 'invited',
+              invited_by: req.user.id,
+            }));
+
+            const { error: insertError } = await Event.supabase
+              .from('event_participants')
+              .upsert(newParticipants, { onConflict: 'event_id,user_id' });
+
+            if (insertError) {
+              console.error('Erreur ajout participants:', insertError);
+            } else {
+              // Créer aussi des entrées dans event_invitations pour les notifications
+              const invitations = newParticipants.map((participant) => ({
+                event_id: id,
+                user_id: participant.user_id,
+                invited_by: req.user.id,
+                status: 'pending',
+                sent_at: new Date().toISOString(),
+                expires_at: new Date(
+                  Date.now() + 7 * 24 * 60 * 60 * 1000
+                ).toISOString(), // 7 jours
+              }));
+
+              const { error: invitationError } = await Event.supabase
+                .from('event_invitations')
+                .upsert(invitations, { onConflict: 'event_id,user_id' });
+
+              if (invitationError) {
+                console.error('Erreur création invitations:', invitationError);
+              }
+
+              // Envoyer des notifications aux nouveaux participants
+              try {
+                await notificationService.sendEventInvitations(
+                  id,
+                  newParticipantIds
+                );
+                newParticipantsNotified = newParticipantIds.length;
+                console.log(
+                  '✅ Notifications envoyées à',
+                  newParticipantsNotified,
+                  'nouveaux participants'
+                );
+              } catch (notificationError) {
+                console.warn(
+                  'Erreur envoi notifications nouveaux participants:',
+                  notificationError
+                );
+              }
+            }
+          }
+        } catch (participantError) {
+          console.error('Erreur gestion participants:', participantError);
+          // Ne pas faire échouer la mise à jour pour cette erreur
+        }
+      }
+
       const updatedEvent = await Event.update(id, updates);
 
       res.json({
         success: true,
-        message: 'Événement mis à jour avec succès',
-        data: { event: updatedEvent },
+        message: `Événement mis à jour avec succès${
+          newParticipantsNotified > 0
+            ? ` - ${newParticipantsNotified} nouvelle(s) invitation(s) envoyée(s)`
+            : ''
+        }`,
+        data: {
+          event: updatedEvent,
+          new_participants_notified: newParticipantsNotified,
+        },
       });
     } catch (error) {
       console.error('Erreur mise à jour événement:', error);
@@ -190,7 +315,7 @@ class EventsController {
 
       if (
         event.created_by !== req.user.id &&
-        ![2, 3].includes(req.user.role_id)
+        ![1, 2, 3].includes(req.user.role_id) // Autoriser joueurs (1), capitaines (2), coaches (3)
       ) {
         return res.status(403).json({
           success: false,
@@ -370,7 +495,7 @@ class EventsController {
   }
 
   // Méthode privée pour envoyer les invitations
-  async sendEventInvitations(event, participantIds) {
+  static async sendEventInvitations(event, participantIds) {
     try {
       // Récupérer les informations des participants via le modèle User
       const userEmails = await User.getEmailsByIds(participantIds);
