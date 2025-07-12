@@ -73,6 +73,7 @@ class EventsController {
       console.log('--- [createEvent] Body reçu:', req.body);
       const { participant_ids, ...eventData } = req.body;
       console.log('--- [createEvent] eventData:', eventData);
+      console.log('--- [createEvent] participant_ids reçu:', participant_ids);
       // Données de base de l'événement
       const completeEventData = {
         ...eventData,
@@ -86,19 +87,44 @@ class EventsController {
 
       // Logique d'invitation selon le type d'événement
       if (eventData.event_type_id === 1) {
-        // Type 1: Invitation automatique de tous les joueurs actifs
+        // Type 1 (Entrainement): Invitation automatique de tous les joueurs actifs
+        console.log('--- [createEvent] Type entrainement détecté');
         if (participant_ids && participant_ids.length > 0) {
           // Si des participants sont spécifiés, les utiliser
           participantIdsToInvite = participant_ids;
+          console.log(
+            '--- [createEvent] Utilisation des participants spécifiés:',
+            participantIdsToInvite
+          );
         } else {
           // Sinon, inviter automatiquement tous les joueurs actifs
+          console.log(
+            '--- [createEvent] Auto-invitation de tous les joueurs actifs'
+          );
           const activeUsers = await User.getActiveTeamMembers();
           participantIdsToInvite = activeUsers.map((user) => user.id);
+          console.log(
+            '--- [createEvent] Joueurs actifs trouvés:',
+            activeUsers.length
+          );
+          console.log(
+            '--- [createEvent] IDs des joueurs à inviter:',
+            participantIdsToInvite
+          );
         }
       } else {
         // Autres types: Sélection manuelle uniquement
+        console.log('--- [createEvent] Type événement autre que entrainement');
         if (participant_ids && participant_ids.length > 0) {
           participantIdsToInvite = participant_ids;
+          console.log(
+            '--- [createEvent] Participants spécifiés:',
+            participantIdsToInvite
+          );
+        } else {
+          console.log(
+            '--- [createEvent] Aucun participant spécifié pour cet événement'
+          );
         }
       }
 

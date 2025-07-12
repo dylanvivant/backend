@@ -121,11 +121,12 @@ class User extends BaseModel {
         id,
         pseudo,
         email,
-        roles(name),
+        roles(id, name),
         player_types(name)
       `
       )
       .eq('is_verified', true)
+      .eq('role_id', 1) // Ne récupérer que les joueurs pour les entrainements
       .not('roles', 'is', null); // Exclure les utilisateurs sans rôle
 
     if (error) throw error;
