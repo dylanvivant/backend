@@ -299,8 +299,8 @@ class EmailService {
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="${process.env.FRONTEND_URL}/login" class="button">
-                    🚀 Première connexion
+                <a href="${verificationUrl}" class="button">
+                    ✨ Activer mon compte
                 </a>
             </div>
             
