@@ -118,7 +118,9 @@ const eventSchemas = {
     opponent_team_id: Joi.number().integer().min(1),
 
     // Participants - optionnel pour permettre l'auto-invitation
-    participant_ids: Joi.array().items(baseSchemas.uuid).optional(),
+    participant_ids: Joi.alternatives()
+      .try(Joi.array().items(baseSchemas.uuid), Joi.allow(null))
+      .optional(),
   }),
 
   updateEvent: Joi.object({
@@ -145,7 +147,9 @@ const eventSchemas = {
     status: Joi.string().valid('scheduled', 'completed', 'cancelled'),
 
     // Participants - optionnel pour permettre l'auto-invitation
-    participant_ids: Joi.array().items(baseSchemas.uuid).optional(),
+    participant_ids: Joi.alternatives()
+      .try(Joi.array().items(baseSchemas.uuid), Joi.allow(null))
+      .optional(),
   }),
 
   respondToInvitation: Joi.object({
