@@ -58,4 +58,34 @@ router.put(
   authController.changePassword
 );
 
+// Route de debug temporaire - à supprimer en production
+router.get('/debug/tokens', async (req, res) => {
+  try {
+    const { User } = require('../models');
+    const userInstance = new User();
+    const tokens = await userInstance.getAllVerificationTokens();
+
+    console.log('🔍 Tokens de vérification trouvés:', tokens);
+
+    res.json({
+      success: true,
+      data: {
+        total: tokens.length,
+        tokens: tokens.map((t) => ({
+          email: t.email,
+          pseudo: t.pseudo,
+          token: t.verification_token,
+          is_verified: t.is_verified,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error('Erreur debug tokens:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des tokens',
+    });
+  }
+});
+
 module.exports = router;

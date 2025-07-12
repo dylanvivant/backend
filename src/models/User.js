@@ -10,7 +10,11 @@ class User extends BaseModel {
   // Créer un utilisateur avec hash du mot de passe
   async createUser(userData) {
     const hashedPassword = await bcrypt.hash(userData.password, 12);
-    const verificationToken = uuidv4();
+    // Utiliser le token fourni ou en générer un nouveau
+    const verificationToken = userData.verification_token || uuidv4();
+
+    console.log('🔍 createUser - Token reçu:', userData.verification_token);
+    console.log('🔍 createUser - Token utilisé:', verificationToken);
 
     const newUser = {
       ...userData,
@@ -21,7 +25,32 @@ class User extends BaseModel {
     };
 
     delete newUser.password;
-    return await this.create(newUser);
+
+    console.log('🔍 createUser - Données à insérer:', {
+      email: newUser.email,
+      pseudo: newUser.pseudo,
+      verification_token: newUser.verification_token,
+      is_verified: newUser.is_verified,
+    });
+
+    const createdUser = await this.create(newUser);
+
+    console.log('✅ createUser - Utilisateur créé:', {
+      id: createdUser.id,
+      email: createdUser.email,
+      verification_token: createdUser.verification_token,
+      is_verified: createdUser.is_verified,
+    });
+
+    // Vérification immédiate : re-chercher l'utilisateur créé
+    console.log('🔍 createUser - Vérification immédiate...');
+    const verifyUser = await this.findById(
+      createdUser.id,
+      'id, email, verification_token, is_verified'
+    );
+    console.log('🔍 createUser - Utilisateur re-trouvé:', verifyUser);
+
+    return createdUser;
   }
 
   // Changer le mot de passe et désactiver le flag must_change_password
@@ -99,6 +128,9 @@ class User extends BaseModel {
   // Vérifier le token de vérification
   async verifyEmail(token) {
     console.log('🔍 User.verifyEmail appelé avec token:', token);
+
+    // DEBUG: Utiliser la fonction de debug pour plus d'infos
+    await this.findByTokenDebug(token);
 
     // D'abord vérifier si le token existe
     const { data: existingUser, error: findError } = await this.supabase
@@ -200,6 +232,32 @@ class User extends BaseModel {
 
     if (error) throw error;
     return data || [];
+  }
+
+  // DEBUG: Chercher un token spécifique avec SQL brut
+  async findByTokenDebug(token) {
+    console.log('🔍 findByTokenDebug - Recherche du token:', token);
+
+    // Recherche avec SQL brut pour debugging
+    const { data, error } = await this.supabase
+      .from(this.tableName)
+      .select('*')
+      .eq('verification_token', token);
+
+    console.log('🔍 findByTokenDebug - Résultat brut:', { data, error });
+
+    // Recherche de tous les utilisateurs pour comparaison
+    const { data: allUsers, error: allError } = await this.supabase
+      .from(this.tableName)
+      .select('id, email, pseudo, verification_token, is_verified')
+      .limit(10);
+
+    console.log(
+      '🔍 findByTokenDebug - Tous les utilisateurs (10 premiers):',
+      allUsers
+    );
+
+    return { found: data, allUsers };
   }
 }
 

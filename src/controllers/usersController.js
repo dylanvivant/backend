@@ -116,11 +116,22 @@ class UsersController {
         must_change_password: true, // Forcer le changement à la première connexion
       };
 
+      console.log(
+        '🔍 Token généré pour le nouvel utilisateur:',
+        verificationToken
+      );
+
       const newUser = await User.createUser(userData);
+
+      console.log(
+        '✅ Utilisateur créé avec token:',
+        newUser.verification_token
+      );
 
       // Envoyer l'email avec les identifiants
       try {
         const creator = await User.findById(req.user.id, 'pseudo');
+        console.log('📧 Envoi email avec token:', verificationToken);
         await emailService.sendTemporaryPassword(
           email,
           pseudo,
