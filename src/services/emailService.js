@@ -279,7 +279,8 @@ class EmailService {
     email,
     pseudo,
     temporaryPassword,
-    createdBy = 'un capitaine'
+    createdBy = 'un capitaine',
+    verificationToken = null
   ) {
     const content = `
             <h1>🎊 Bienvenue dans l'équipe ${pseudo} !</h1>
@@ -299,8 +300,16 @@ class EmailService {
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="${process.env.FRONTEND_URL}/login" class="button">
-                    🚀 Première connexion
+                <a href="${
+                  verificationToken
+                    ? `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`
+                    : `${process.env.FRONTEND_URL}/login`
+                }" class="button">
+                    ${
+                      verificationToken
+                        ? '✨ Activer mon compte'
+                        : '🚀 Première connexion'
+                    }
                 </a>
             </div>
             

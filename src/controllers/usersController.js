@@ -99,6 +99,10 @@ class UsersController {
       // Générer un mot de passe temporaire
       const temporaryPassword = generateRandomPassword();
 
+      // Générer un token de vérification
+      const { v4: uuidv4 } = require('uuid');
+      const verificationToken = uuidv4();
+
       const userData = {
         email,
         pseudo,
@@ -107,7 +111,8 @@ class UsersController {
         role_id,
         player_type_id,
         password: temporaryPassword,
-        is_verified: true, // Compte créé par capitaine = déjà vérifié
+        is_verified: false, // Compte doit être vérifié par email
+        verification_token: verificationToken,
         must_change_password: true, // Forcer le changement à la première connexion
       };
 
@@ -120,7 +125,8 @@ class UsersController {
           email,
           pseudo,
           temporaryPassword,
-          creator.pseudo || 'un capitaine'
+          creator.pseudo || 'un capitaine',
+          verificationToken
         );
       } catch (emailError) {
         console.error('Erreur envoi email:', emailError);
