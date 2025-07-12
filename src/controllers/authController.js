@@ -144,13 +144,21 @@ class AuthController {
     try {
       const { token } = req.body;
 
+      console.log('🔍 Tentative de vérification avec token:', token);
+      console.log('🔍 Type du token:', typeof token);
+      console.log('🔍 Longueur du token:', token?.length);
+
       const user = await User.verifyEmail(token);
+
       if (!user) {
+        console.log('❌ Token non trouvé dans la base de données:', token);
         return res.status(400).json({
           success: false,
           message: 'Token de vérification invalide ou expiré',
         });
       }
+
+      console.log("✅ Vérification réussie pour l'utilisateur:", user.email);
 
       res.json({
         success: true,

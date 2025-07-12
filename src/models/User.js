@@ -98,17 +98,64 @@ class User extends BaseModel {
 
   // Vérifier le token de vérification
   async verifyEmail(token) {
+    console.log('🔍 User.verifyEmail appelé avec token:', token);
+
+    // D'abord vérifier si le token existe
+    const { data: existingUser, error: findError } = await this.supabase
+      .from(this.tableName)
+      .select('id, email, pseudo, is_verified, verification_token')
+      .eq('verification_token', token)
+      .single();
+
+    console.log('🔍 Résultat de la recherche:', { existingUser, findError });
+
+    if (findError && findError.code === 'PGRST116') {
+      // Token non trouvé
+      console.log('❌ Token non trouvé (PGRST116)');
+      return null;
+    }
+
+    if (findError) {
+      console.log('❌ Erreur lors de la recherche:', findError);
+      throw findError;
+    }
+
+    if (!existingUser) {
+      console.log('❌ Aucun utilisateur retourné');
+      return null;
+    }
+
+    console.log(
+      '✅ Utilisateur trouvé:',
+      existingUser.email,
+      'is_verified:',
+      existingUser.is_verified
+    );
+
+    // Si l'utilisateur est déjà vérifié
+    if (existingUser.is_verified) {
+      console.log('ℹ️ Utilisateur déjà vérifié');
+      return existingUser;
+    }
+
+    // Mettre à jour le statut de vérification
+    console.log('🔄 Mise à jour du statut de vérification...');
     const { data, error } = await this.supabase
       .from(this.tableName)
       .update({
         is_verified: true,
         verification_token: null,
       })
-      .eq('verification_token', token)
+      .eq('id', existingUser.id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.log('❌ Erreur lors de la mise à jour:', error);
+      throw error;
+    }
+
+    console.log('✅ Statut de vérification mis à jour');
     return data;
   }
 
@@ -139,6 +186,17 @@ class User extends BaseModel {
       .from(this.tableName)
       .select('id, email, pseudo')
       .in('id', userIds);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  // DEBUG: Lister tous les tokens de vérification actifs
+  async getAllVerificationTokens() {
+    const { data, error } = await this.supabase
+      .from(this.tableName)
+      .select('id, email, pseudo, verification_token, is_verified')
+      .not('verification_token', 'is', null);
 
     if (error) throw error;
     return data || [];
