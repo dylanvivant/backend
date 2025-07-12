@@ -78,6 +78,14 @@ router.put(
   usersController.updateMemberPassword
 );
 
+// Renvoyer email de vérification pour un membre
+router.post(
+  '/:id/resend-verification',
+  requireCaptain,
+  validateUuidParam('id'),
+  usersController.resendVerificationById
+);
+
 // Routes pour capitaines/coaches
 
 // Obtenir les statistiques de l'équipe

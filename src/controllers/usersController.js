@@ -396,6 +396,52 @@ class UsersController {
       });
     }
   }
+
+  // Renvoyer email de vérification par ID utilisateur
+  async resendVerificationById(req, res) {
+    try {
+      const { id } = req.params;
+
+      const user = await User.findById(id, 'email, pseudo, is_verified');
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Utilisateur non trouvé',
+        });
+      }
+
+      if (user.is_verified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ce compte est déjà vérifié',
+        });
+      }
+
+      // Générer un nouveau token
+      const { v4: uuidv4 } = require('uuid');
+      const newToken = uuidv4();
+      await User.update(id, { verification_token: newToken });
+
+      // Renvoyer l'email
+      const emailService = require('../services/emailService');
+      await emailService.sendVerificationEmail(
+        user.email,
+        newToken,
+        user.pseudo
+      );
+
+      res.json({
+        success: true,
+        message: 'Email de vérification renvoyé',
+      });
+    } catch (error) {
+      console.error('Erreur renvoi vérification par ID:', error);
+      res.status(500).json({
+        success: false,
+        message: "Erreur lors du renvoi de l'email de vérification",
+      });
+    }
+  }
 }
 
 module.exports = new UsersController();
